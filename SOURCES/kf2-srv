@@ -319,14 +319,21 @@ function map_sync () # $1: [InstanceName]
 			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
 			for MapFile in $(find "$CustomMapsDir" -type f -name '*.kfm' -printf "%f\n")
 			do
-				MapName=$(echo "$MapFile" | grep -Po '([^\/]*).kfm')
+				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||g')
 				if [[ ! -f "$Config" ]]; then
 					echo "$Config does not exist!"
 				elif grep -qP "MapName=$MapName[ $]" "$Config"; then
 					echo "$MapName is already in $Config."
 				else
 					echo "Adding $MapName to $Config."
-					echo -e "\n[$MapName KFMapSummary]\nMapName=$MapName" >> "$Config"
+					echo -e "
+[$MapName KFMapSummary]
+MapName=$MapName
+bPlayableInSurvival=True
+bPlayableInWeekly=True
+bPlayableInVsSurvival=True
+bPlayableInEndless=True
+bPlayableInObjective=False" >> "$Config"
 				fi
 			done
 		else
