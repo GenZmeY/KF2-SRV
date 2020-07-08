@@ -1,0 +1,9 @@
+LANG=en_US.UTF-8
+
+Map=kf-bioticslab
+
+Arg1="-webadminport=8080"
+Arg2="-queryport=27015"
+Arg3="-port=7777"
+
+Description="Default description"

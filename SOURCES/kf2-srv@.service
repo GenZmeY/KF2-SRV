@@ -1,0 +1,21 @@
+[Unit]
+Description=Killing Floor 2 Server Daemon - %i
+
+[Service]
+User=steam
+Group=steam
+Type=simple
+StandardOutput=null
+StandardError=null
+EnvironmentFile=/etc/kf2-srv/instances/%i/main.conf
+ExecStart=/usr/games/kf2-srv/Binaries/Win64/KFGameSteamServer.bin.x86_64 $Map configsubdir=instances/%i $Arg1 $Arg2 $Arg3
+Restart=always
+
+NoNewPrivileges=yes
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=false
+
+[Install]
+WantedBy=multi-user.target
