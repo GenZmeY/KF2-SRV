@@ -1,0 +1,14 @@
+[Unit]
+Description=Check and Update Killing Floor 2 server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/kf2-srv-beta --update
+
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=false
+ProtectSystem=false
+
+[Install]
+WantedBy=multi-user.target
