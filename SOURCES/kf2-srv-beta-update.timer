@@ -1,0 +1,9 @@
+[Unit]
+Description=Check and Update killing Floor 2 beta job
+
+[Timer]
+OnCalendar=*-*-* 4:00:00
+Unit=kf2-srv-beta-update.service
+
+[Install]
+WantedBy=multi-user.target

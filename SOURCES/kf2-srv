@@ -18,24 +18,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 source /etc/steamcmd/steamcmd.conf
-source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-ScriptVersion="0.6.0"
+ScriptVersion="0.7.0"
 
 AppServerNum="232130"
 AppClientNum="232090"
 StrangeConstUID="17825793"
-InstallDir="/usr/games/kf2-srv"
-ActiveBranch="$InstallDir/activebranch.txt"
-AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
-DefaultConfigDir="$InstallDir/KFGame/Config"
-DownloadMapsDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-CacheMapsDir="$InstallDir/KFGame/Cache"
-InstanceConfigDir="/etc/kf2-srv/instances"
-InstanceConfigLnk="$DefaultConfigDir/instances"
-MainConfigTemplate="/etc/kf2-srv/main.conf.template"
 
 DiffArray=('Normal' 'Hard' 'Suicide' 'Hell')
 WaveArray=('4' '7' '10')
@@ -52,7 +42,8 @@ function show_help ()
 	echo "$ScriptName v$ScriptVersion"
 	echo "Централизование управление серверами Killing Floor 2"
 	echo "Usage:"
-	echo "$ScriptName OPTIONS"
+	echo "${ScriptName}           OPTIONS   stable branch"
+	echo "${ScriptName}-beta      OPTIONS   beta branch"
 	echo ""
 	echo "Mandatory arguments to long options are mandatory for short options too."
 	echo "  -n, --new       INSTANCE  создает новый ЭКЗЕМПЛЯР сервера"
@@ -113,8 +104,12 @@ function show_help ()
 # Use this function with non-root user only!!!
 function run_as_root () # $*: Args
 {
+	if [[ -n "$BetaPostfix" ]]; then
+		BetaPostfix="beta"
+	fi
+        
 	if [[ -n $(groups "$USER" | grep -Fo 'wheel') ]]; then
-		sudo "$ScriptFullname" $*
+		sudo "$ScriptFullname" $BetaPostfix $*
 	else
 		echo "You must be root or sudo-user to run this command."
 		return 1
@@ -126,7 +121,7 @@ function service_name () # $*: Instance[s]
 	local Services=""
 	for Instance in $*
 	do
-		Services+=" kf2-srv@$Instance.service"
+		Services+=" kf2-srv$BetaPostfix@$Instance.service"
 	done
 	echo "$Services"
 }
@@ -159,7 +154,7 @@ function instance_exists () # $1: Instance
 
 function server_exists ()
 {
-	if [[ -n $(ls "$InstallDir") ]]; then
+	if [[ -x "$AppBin" ]]; then
 		return 0
 	else
 		return 1
@@ -168,8 +163,21 @@ function server_exists ()
 
 function updates_aviable ()
 {
-	# TODO: implementation
-	return 0
+	# TODO: check
+	if [[ -n "$BetaPostfix" ]]; then
+		local BetaArg="-beta preview"
+	fi
+	if steamcmd +login anonymous \
+				+force_install_dir $InstallDir \
+				+app_info_update 1 \
+				+app_status $AppServerNum $BetaArg \
+				+quit | \
+				grep 'install state:' | \
+				grep -qiF 'Update Required'; then
+		return 0
+	else
+		return 1
+	fi
 }
 
 function new_instance () # $*: InstanceName[s]
@@ -230,7 +238,7 @@ function new_instance () # $*: InstanceName[s]
 		sed -i -r --follow-symlinks "s/-queryport=[0-9]+/-queryport=$MaxQueryPort/g"          "$InstanceDir/main.conf"
 		sed -i -r --follow-symlinks "s/-webadminport=[0-9]+/-webadminport=$MaxWebAdminPort/g" "$InstanceDir/main.conf"
 
-		echo "Instance $Instance created. See /etc/$ScriptName/instances/$Instance for edit configuration"
+		echo "Instance $Instance created. See /etc/$ScriptName/instances$BetaPostfix/$Instance for edit configuration"
 	done
 }
 
@@ -330,12 +338,11 @@ function show_status () # $*: [InstanceName[s]]
 
 function validate ()
 {
-	if [[ -n "$BranchName" ]]; then
-		local BetaArg="-beta $BranchName"
+	if [[ -n "$BetaPostfix" ]]; then
+		local BetaArg="-beta preview"
 	fi
 	stop_instance
 	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
-	echo "$BranchName" > "$ActiveBranch"
 	start_instance
 }
 
@@ -392,13 +399,43 @@ function fix_steamclient_so ()
 	ln -s "/usr/share/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
 }
 
+function create_map_dirs () 
+{
+	# space saving
+	local InstallDirOrig="/usr/games/kf2-srv"
+	local InstallDirBeta="/usr/games/kf2-srv-beta"
+	local DownloadMapsDirOrig="$InstallDirOrig/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+	local CacheMapsDirOrig="$InstallDirOrig/KFGame/Cache"
+	local DownloadMapsDirBeta="$InstallDirBeta/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+	local CacheMapsDirBeta="$InstallDirBeta/KFGame/Cache"
+	
+	if [[ -z "$BetaPostfix" ]]; then # Orig
+		sudo -u "$SteamUser" install -d -m 775 "$DownloadMapsDirOrig"
+		if [[ -d "$CacheMapsDirBeta" ]]; then
+			ln -s "$CacheMapsDirBeta" "$CacheMapsDirOrig"
+			rm -rf "$DownloadMapsDirOrig"
+			ln -s "$DownloadMapsDirBeta" "$DownloadMapsDirOrig"
+		else
+			sudo -u "$SteamUser" install -d -m 775 "$CacheMapsDirOrig"
+		fi
+	else # Beta
+		sudo -u "$SteamUser" install -d -m 775 "$DownloadMapsDirBeta"
+		if [[ -d "$CacheMapsDirOrig" ]]; then
+			ln -s "$CacheMapsDirOrig" "$CacheMapsDirBeta"
+			rm -rf "$DownloadMapsDirBeta"
+			ln -s "$DownloadMapsDirOrig" "$DownloadMapsDirBeta"
+		else
+			sudo -u "$SteamUser" install -d -m 775 "$CacheMapsDirBeta"
+		fi
+	fi
+}
+
 function update_kf2 ()
 {
-	if [[ -n "$BranchName" ]]; then
-		local BetaArg="-beta $BranchName"
+	if [[ -n "$BetaPostfix" ]]; then
+		local BetaArg="-beta preview"
 	fi
 	if ! server_exists; then # First install
-		echo "$BranchName" > "$ActiveBranch"
 		if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
 			echo "Errors during installation - exit"
 			exit 1
@@ -419,22 +456,18 @@ function update_kf2 ()
 			   	break
 			fi
 			sleep 2
+			# TODO: KFWeb.ini > webadmin=true
 		done
 		killall -KILL KFGameSteamServer.bin.x86_64
-		set_ini_permissions "$DefaultConfigDir"
-		install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$CacheMapsDir"
+		create_map_dirs
 		fix_steamclient_so
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
 		make_default_instance
 		echo "KF2 succesfully installed"
 	elif updates_aviable; then # Update
-		if [[ "$BranchName" == $(cat "$ActiveBranch") ]]; then
-			stop_instance
-			steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
-			start_instance
-		else
-			validate
-		fi
+		stop_instance
+		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
+		start_instance
 	fi
 }
 
@@ -687,7 +720,7 @@ function map_sync ()
 	do
 		if instance_exists "$Instance"; then
 			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			for MapFile in $(find "$CacheMapsDir" -type f -name '*.kfm' -printf "%f\n")
+			for MapFile in $(find -L "$CacheMapsDir" -type f -name '*.kfm' -printf "%f\n")
 			do
 				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||g')
 				if [[ ! -f "$Config" ]]; then
@@ -882,6 +915,19 @@ function ban_sync ()
 		ban_ID3 "$ID3"
 	done
 }
+
+if [[ "$1" == "beta" ]]; then
+	BetaPostfix="-beta"; shift
+fi
+
+InstallDir="/usr/games/kf2-srv$BetaPostfix"
+AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+DefaultConfigDir="$InstallDir/KFGame/Config"
+DownloadMapsDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+CacheMapsDir="$InstallDir/KFGame/Cache"
+InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
+InstanceConfigLnk="$DefaultConfigDir/instances"
+MainConfigTemplate="/etc/kf2-srv/main.conf.template"
 
 if [[ $# -eq 0 ]]; then show_help; exit 0; fi
 case $1 in
