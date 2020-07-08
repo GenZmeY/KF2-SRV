@@ -29,7 +29,7 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-readonly ScriptVersion="0.10.1"
+readonly ScriptVersion="0.11.0"
 
 # Constants. Don't change.
 readonly AppServerNum="232130"
@@ -246,6 +246,16 @@ function new_instance () # $*: InstanceName[s]
 		multini -s "$InstanceDir/main.conf" '' 'PortGame'  "$MaxGamePort"
 		multini -s "$InstanceDir/main.conf" '' 'PortQuery' "$MaxQueryPort"
 		multini -s "$InstanceDir/main.conf" '' 'PortWeb'   "$MaxWebAdminPort"
+		
+		multini -s "$InstanceDir/KFWeb.ini"                "IpDrv.WebServer"   "bEnabled"            "true"
+		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "PurgeLogsDays"       "0"
+		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "LogTimes"            "False"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "bHttpAuth"           "True"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "Filename"            "$Instance-chat"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "True"
+		
+		# LOGGING?: LinuxServer-KFGame.ini bLog* 
 
 		echo "Instance $Instance created. See /etc/$ScriptName/instances$BetaPostfix/$Instance for edit configuration"
 	done
@@ -480,6 +490,9 @@ function first_install ()
 		exit 1
 	fi
 	
+	rm -rf "$LogDir"
+	ln -s "/var/log/kf2-srv$BetaPostfix" "$LogDir"
+	
 	echo "Creating base ini files"
 	sudo -u "$SteamUser" $AppBin &> /dev/null &
 	while true
@@ -501,6 +514,9 @@ function first_install ()
 	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
 	echo "Setting up WebAdmin"
 	multini -s "$DefaultConfigDir/KFWeb.ini" "IpDrv.WebServer" "bEnabled" "true"
+	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "PurgeLogsDays" "0"
+	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "LogTimes" "False"
+	
 	sudo -u "$SteamUser" $AppBin &> /dev/null &
 	while true
 	do
@@ -511,7 +527,10 @@ function first_install ()
 	done
 	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
 	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bHttpAuth" "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bHttpAuth"           "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bChatLog"            "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "Filename"            "default-chat"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "True"
 	
 	echo "Wait while WebAdmin up"
 	sudo -u "$SteamUser" $AppBin &> /dev/null &
@@ -804,9 +823,7 @@ function workshop_del () # $*: WorkshopID[s]
 		local WsName=$(name_by_workshopID "$WorkshopID")
 		local Cache="$CacheDir/$WorkshopID"
 		local Downl="$DownloadDir/$WorkshopID"
-		echo -e "Clear cache:
-$Cache
-$Downl"
+		echo -e "Clear cache:\n$Cache\n$Downl"
 		rm -rf "$Cache" "$Downl"
 		for Instance in $(show_instances)
 		do
@@ -1221,6 +1238,7 @@ AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 DefaultConfigDir="$InstallDir/KFGame/Config"
 DownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
 CacheDir="$InstallDir/KFGame/Cache"
+LogDir="$InstallDir/KFGame/Logs"
 InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
 InstanceConfigLnk="$DefaultConfigDir/instances"
 MainConfigTemplate="/etc/kf2-srv/main.conf.template"

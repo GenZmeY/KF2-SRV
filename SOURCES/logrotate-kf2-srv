@@ -1,0 +1,16 @@
+/var/log/kf2-srv/*.log
+/var/log/kf2-srv-beta/*.log
+{
+	daily
+	missingok
+	rotate 7
+	create 0644
+	missingok
+	compress
+	notifempty
+	postrotate
+		test -s /run/rsyslogd.pid && kill -HUP $(cat /run/rsyslogd.pid)
+		# postrotate script should always return 0
+		true
+	endscript
+}
