@@ -1,5 +1,5 @@
 Name:      kf2-srv
-Version:   0.2.0
+Version:   0.2.1
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -20,7 +20,7 @@ Requires:  steamcmd
 Provides:  %{name}
 
 %description
-Killing Floor 2 server
+Command line tool for managing a set of Killing Floor 2 servers.
 
 %prep
 
@@ -75,6 +75,9 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Mon Sep 16 2019 GenZmeY <genzmey@gmail.com> - 0.2.1-1
+- --map-sync bugfixes.
+
 * Mon Sep 16 2019 GenZmeY <genzmey@gmail.com> - 0.2.0-1
 - Add --map-sync implementation to kf2-srv.
 
