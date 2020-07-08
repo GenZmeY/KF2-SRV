@@ -4,7 +4,9 @@
 # Copyright (C) 2019, 2020 GenZmeY
 # mailto: genzmey@gmail.com
 # 
-# This program is free software: you can redistribute it and/or modify
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -27,7 +29,7 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-readonly ScriptVersion="0.10.0"
+readonly ScriptVersion="0.10.1"
 
 # Constants. Don't change.
 readonly AppServerNum="232130"

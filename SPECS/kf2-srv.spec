@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.10.0
+Version:    0.10.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -19,6 +19,7 @@ Source8:    %{name}-beta@.service
 Source9:    %{name}-beta-update.service
 Source10:   %{name}-beta-update.timer
 Source11:   %{name}.conf
+Source12:   COPYING
 
 Requires:   systemd >= 219
 Requires:   steamcmd
@@ -46,17 +47,19 @@ Command line tool for managing a set of Killing Floor 2 servers.
 %install
 rm -rf $RPM_BUILD_ROOT
 
-install -m 755 -d %{buildroot}/%{_bindir}
-install -m 755 -d %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 755 -d %{buildroot}/%{_prefix}/lib/firewalld/services
-install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/instances
-install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/instances-beta
-install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/mapcycles
-install -m 644 -d %{buildroot}/%{_prefix}/games/%{name}
-install -m 644 -d %{buildroot}/%{_prefix}/games/%{name}-beta
+install -d %{buildroot}/%{_bindir}
+install -d %{buildroot}/%{_prefix}/lib/systemd/system
+install -d %{buildroot}/%{_prefix}/lib/firewalld/services
+install -d %{buildroot}/%{_sysconfdir}/%{name}/instances
+install -d %{buildroot}/%{_sysconfdir}/%{name}/instances-beta
+install -d %{buildroot}/%{_sysconfdir}/%{name}/mapcycles
+install -d %{buildroot}/%{_prefix}/games/%{name}
+install -d %{buildroot}/%{_prefix}/games/%{name}-beta
+install -d %{buildroot}/%{_datadir}/licenses/%{name}
 
+# access rights are used here to prevent warnings when building the package
 install -m 755 %{SOURCE1}  %{buildroot}/%{_bindir}
-install -m 644 %{SOURCE2}  %{buildroot}/%{_bindir}
+install -m 755 %{SOURCE2}  %{buildroot}/%{_bindir}
 install -m 644 %{SOURCE3}  %{buildroot}/%{_prefix}/lib/firewalld/services
 install -m 644 %{SOURCE4}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE5}  %{buildroot}/%{_prefix}/lib/systemd/system
@@ -66,6 +69,7 @@ install -m 644 %{SOURCE8}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE9}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE10} %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE11} %{buildroot}/%{_sysconfdir}/%{name}
+install -m 644 %{SOURCE12} %{buildroot}/%{_datadir}/licenses/%{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -78,11 +82,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
 %attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
-%attr(640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
 %attr(755,root,root)                            %{_bindir}/%{name}
 %attr(755,root,root)                            %{_bindir}/%{name}-beta
 %attr(644,root,root)                            %{_prefix}/lib/systemd/system/*
+%attr(644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
@@ -95,6 +100,11 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Wed Jul 8 2020 GenZmeY <genzmey@gmail.com> - 0.10.1-1
+- add COPYING to distributive;
+- add license info to kf2-srv-beta;
+- spec fixes;
+
 * Mon Jun 22 2020 GenZmeY <genzmey@gmail.com> - 0.10.0-1
 - separate mutators setting;
 - mutator column in server list;
