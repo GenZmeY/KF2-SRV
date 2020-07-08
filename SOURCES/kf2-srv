@@ -26,32 +26,52 @@ AppNum="232130"
 InstallDir="/usr/games/kf2-srv"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 DefaultConfigDir="$InstallDir/KFGame/Config"
+CustomMapsDir="$InstallDir/KFGame/Cache"
 InstanceConfigDir="$DefaultConfigDir/instances"
 InstanceConfigLnk="/etc/kf2-srv/instances"
 MainConfigTemplate="/etc/kf2-srv/main.conf.template"
 
 function show_help ()
 {
-	echo "kf2-srv"
-	echo ""
+	echo "$ScriptName"
+	echo "Централизование управление серверами Killing Floor 2"
 	echo "Usage:"
 	echo "$ScriptName OPTION  [INSTANCE]"
 	echo ""
 	echo "Mandatory arguments to long options are mandatory for short options too."
-	echo "  -n, --new      INSTANCE   TODO: description"
-	echo "  -d, --delete  [INSTANCE]  TODO: description"
-	echo "  -l, --list                TODO: description"
-	echo "  -s, --status  [INSTANCE]  TODO: description"
-	echo "  -u, --update              TODO: description"
-	echo "  -r. --run                 TODO: description"
-	echo "      --start   [INSTANCE]  TODO: description"
-	echo "      --stop    [INSTANCE]  TODO: description"
-	echo "      --enable  [INSTANCE]  TODO: description"
-	echo "      --disable [INSTANCE]  TODO: description"
-	echo "      --map-sync            TODO: description"
-	echo "      --ban-sync            TODO: description"
-	echo "      --map-rotate-save     TODO: description"
-	echo "      --map-rotate-load     TODO: description"
+	echo "TODO: English description"
+	echo "  -n, --new       INSTANCE  создает новый ЭКЗЕМПЛЯР сервера"
+	echo "  -d, --delete   [INSTANCE] удаляет указанный ЭКЗМПЛЯР сервера; если"
+	echo "                            ЭКЗЕМПЛЯР не указан, удаляет все сервера"
+	echo "  -l, --list                перечисляет все имеющиеся экземпляры сервера"
+	echo "  -s, --status   [INSTANCE] отображает состояние указанного ЭКЗЕМПЛЯРА"
+	echo "                            сервера; если ЭКЗЕМПЛЯР не указан,"
+	echo "                            отображает состояние всех экземпляров сервера"
+	echo "  -u, --update              при первом запуске производит установку KF2;"
+	echo "                            в дальнейшем устанавливает обновления при их" 
+	echo "                            наличии"
+	echo "  -r. --run      [OPTIONS]  запускает экземпляр сервера с указанными"
+	echo "                            ПАРАМЕТРАМИ"
+	echo "      --start    [INSTANCE] запускает указанный ЭКЗЕМПЛЯР сервера; если"
+	echo "                            ЭКЗЕМПЛЯР не указан, запускает все"
+	echo "                            автозапускаемые экземпляры сервера"
+	echo "      --stop     [INSTANCE] останавливает указанный ЭКЗЕМПЛЯР сервера;"
+	echo "                            если ЭКЗЕМПЛЯР не указан, останавливает все"
+	echo "                            экземпляры сервера"
+	echo "      --enable   [INSTANCE] добавляет указанный ЭКЗЕМПЛЯР сервера в"
+	echo "                            автозапуск; если ЭКЗЕМПЛЯР не указан,"
+	echo "                            добавляет все экземпляры сервера в автозапуск"
+	echo "      --disable  [INSTANCE] удаляет указанный ЭКЗЕМПЛЯР сервера из"
+	echo "                            автозапуска; если ЭКЗЕМПЛЯР не указан,"
+	echo "                            удаляет все экземпляры сервера из автозапуска"
+	echo "      --map-sync [INSTANCE] синхронизирует список сторонних карт в"
+	echo "                            конфигурационном файле ЭКЗЕМПЛЯРА с"
+	echo "                            имеющимися файлами сторонних карт; если"
+	echo "                            ЭКЗЕМПЛЯР не указан, синхронизирует все"
+	echo "                            экземпляры серверов"
+	echo "      --ban-sync            TODO: description & implementation"
+	echo "      --map-rotate-save     TODO: description & implementation"
+	echo "      --map-rotate-load     TODO: description & implementation"
 	echo "  -h, --help                display this help and exit"
 }
 
@@ -200,7 +220,7 @@ function update_kf2 ()
 	if ! server_exists; then # First install
 		chown "root:$SteamUser" "$InstallDir"
 		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
-		mkdir "$InstanceConfigDir" && chown "$SteamUser:$SteamUser" "$InstanceConfigDir"
+		mkdir "$InstanceConfigDir" "$CustomMapsDir" && chown -R "$SteamUser:$SteamUser" "$InstallDir/KFGame"
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
 	elif updates_aviable; then # Update
 		stop_instance
@@ -290,13 +310,34 @@ function run ()
 	fi
 }
 
-function map_sync ()
+function map_sync () # $1: [InstanceName]
 {
-	# TODO: implementation
-	# подсмотреть в скрипте старого серва
-	# либо забить хер и перевести всё на steamworkshop
-	# последний вариант наверное даже правильнее
-	echo "Dummy..."
+	local Instance="$1"
+	if [[ -n "$Instance" ]]; then
+		if instance_exists "$Instance"; then
+			stop_instance "$Instance"
+			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+			for MapFile in $(find "$CustomMapsDir" -type f -name '*.kfm' -printf "%f\n")
+			do
+				MapName=$(echo "$MapFile" | grep -Po '([^\/]*).kfm')
+				if [[ ! -f "$Config" ]]; then
+					echo "$Config does not exist!"
+				elif grep -qP "MapName=$MapName[ $]" "$Config"; then
+					echo "$MapName is already in $Config."
+				else
+					echo "Adding $MapName to $Config."
+					echo -e "\n[$MapName KFMapSummary]\nMapName=$MapName" >> "$Config"
+				fi
+			done
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			map_sync "$Instance"
+		done
+	fi
 }
 
 function ban_sync ()
@@ -330,7 +371,7 @@ case $1 in
 	   --stop            ) if [[ "$EUID" -eq 0 ]]; then stop_instance    "$2"; else run_as_root $@; fi;;
 	   --enable          ) if [[ "$EUID" -eq 0 ]]; then enable_instance  "$2"; else run_as_root $@; fi;;
 	   --disable         ) if [[ "$EUID" -eq 0 ]]; then disable_instance "$2"; else run_as_root $@; fi;;
-	   --map-sync        ) map_sync;                                                                  ;;
+	   --map-sync        ) if [[ "$EUID" -eq 0 ]]; then map_sync         "$2"; else run_as_root $@; fi;;
 	   --ban-sync        ) ban_sync;                                                                  ;;
 	   --map-rotate-save ) map_rotate_save;                                                           ;;
 	   --map-rotate-load ) map_rotate_load;                                                           ;;
