@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+	<short>kf2-srv</short>
+	<description>Killing Floor 2 server</description>
+	<port protocol="udp" port="7777"/>
+	<port protocol="udp" port="27015">
+	<port protocol="tcp" port="8080"/>
+	<port protocol="udp" port="20560"/>
+	<port protocol="udp" port="123"/>
+</service>

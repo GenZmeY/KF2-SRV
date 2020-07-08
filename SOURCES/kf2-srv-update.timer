@@ -1,0 +1,9 @@
+[Unit]
+Description=Check and Update killing Floor 2 job
+
+[Timer]
+OnCalendar=Wed, 04:00
+Unit=kf2-srv-update.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,337 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+source /etc/steamcmd/steamcmd.conf
+source /etc/kf2-srv/kf2-srv.conf
+
+ScriptFullname=$(readlink -e "$0")
+ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
+AppNum="232130"
+InstallDir="/usr/games/kf2-srv"
+AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+DefaultConfigDir="$InstallDir/KFGame/Config"
+InstanceConfigDir="$DefaultConfigDir/instances"
+InstanceConfigLnk="/etc/kf2-srv/instances"
+MainConfigTemplate="/etc/kf2-srv/main.conf.template"
+
+function show_help ()
+{
+	echo "kf2-srv"
+	echo ""
+	echo "Usage:"
+	echo "$ScriptName OPTION  [INSTANCE]"
+	echo ""
+	echo "Mandatory arguments to long options are mandatory for short options too."
+	echo "  -n, --new      INSTANCE   TODO: description"
+	echo "  -d, --delete  [INSTANCE]  TODO: description"
+	echo "  -l, --list                TODO: description"
+	echo "  -s, --status  [INSTANCE]  TODO: description"
+	echo "  -u, --update              TODO: description"
+	echo "  -r. --run                 TODO: description"
+	echo "      --start   [INSTANCE]  TODO: description"
+	echo "      --stop    [INSTANCE]  TODO: description"
+	echo "      --enable  [INSTANCE]  TODO: description"
+	echo "      --disable [INSTANCE]  TODO: description"
+	echo "      --map-sync            TODO: description"
+	echo "      --ban-sync            TODO: description"
+	echo "      --map-rotate-save     TODO: description"
+	echo "      --map-rotate-load     TODO: description"
+	echo "  -h, --help                display this help and exit"
+}
+
+# Use this function with non-root user only!!!
+function run_as_root () # $@: Args
+{
+	if [[ -n $(groups "$USER" | grep -Fo 'wheel') ]]; then
+		sudo "$ScriptFullname" $@
+	else
+		echo "You must be root or sudo-user to run this command."
+		return 1
+	fi
+}
+
+function service_name () # $1: Instance
+{
+	echo "kf2-srv@$1.service"
+}
+
+function show_instances ()
+{
+	find "$InstanceConfigDir" -maxdepth 1 -mindepth 1 -type d -printf "%f\n"
+}
+
+function instance_exists () # $1: Instance
+{
+	if show_instances | grep -qP "^.*[ ]*$1[ ]*.*$" ; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+function server_exists ()
+{
+	if [[ -n $(ls "$InstallDir") ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+function updates_aviable ()
+{
+	# TODO: implementation
+	return 0
+}
+
+function new_instance () # $1: InstanceName
+{
+	local Instance="$1"
+	if [[ -z "$Instance" ]]; then
+		echo "Name of instance must be set"
+		exit 1
+	elif ! server_exists; then
+		echo "You must install server first"
+		echo "Run \"$ScriptName --update\" to install it"
+		exit 1
+	elif instance_exists "$Instance"; then
+		echo "Instance $Instance already exists"
+		exit 1
+	fi
+
+	local InstanceDir="$InstanceConfigDir/$Instance"
+	if [[ -d "$InstanceDir" ]]; then
+		echo "$InstanceDir already exists"
+		exit 1
+	fi
+
+	mkdir -p "$InstanceDir/LinuxServer" && chown -R "$SteamUser:$SteamUser" "$InstanceDir"
+
+	cp -a "$MainConfigTemplate"                                         "$InstanceDir/main.conf"
+	cp -a "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
+	cp -a "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
+	cp -a "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir"
+	cp -a "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir"
+	cp -a "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir"
+	cp -a "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir"
+	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer"
+	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer"
+	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
+	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
+
+	echo "Instance $Instance created. See $InstanceDir for edit configuration"
+}
+
+function delete_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -z "$Instance" ]]; then
+		echo "Are you sure you want to delete all instances? [y/N]"
+		local Answ="N"
+		read Answ
+		if [[ "$Answ" == "y" || "$Answ" == "Y" ]]; then
+			for Instance in $(show_instances)
+			do
+				stop_instance "$Instance"
+				delete_instance "$Instance"
+			done
+		fi
+	elif instance_exists "$Instance"; then
+		local InstanceDir="$InstanceConfigDir/$Instance"
+		stop_instance "$Instance"
+		rm -rf "$InstanceDir"
+		echo "Instance $Instance removed"
+	else
+		echo "Instance $Instance not exists"
+	fi
+}
+
+function show_status_implementation () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]]; then
+		if systemctl -q is-enabled $(service_name "$Instance"); then
+			local IsEnabled="enabled"
+		else
+			local IsEnabled="disabled"
+		fi
+		if systemctl | grep $(service_name "$Instance") | grep -q 'running' ; then
+			local IsRuning="running"
+		else
+			local IsRuning="dead"
+		fi
+		local Description=$(grep -P 'Description=' "$InstanceConfigDir/$Instance/main.conf" | sed -r 's/(Description=|")//g')
+		echo -e "$Instance:$IsEnabled:$IsRuning:$Description"
+	else
+		echo -e "INSTANCE:AUTORUN:STATE:DESCRIPTION"
+		for Instance in $(show_instances)
+		do
+			show_status_implementation "$Instance"
+		done
+	fi
+}
+
+function show_status () # $1: [InstanceName]
+{
+	show_status_implementation "$1" | column -t -s :
+}
+
+function update_kf2 ()
+{
+	if [[ -n "$BranchName" ]]; then
+		local BetaArg="-beta $BranchName"
+	fi
+	if ! server_exists; then # First install
+		chown "root:$SteamUser" "$InstallDir"
+		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
+		mkdir "$InstanceConfigDir" && chown "$SteamUser:$SteamUser" "$InstanceConfigDir"
+		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
+	elif updates_aviable; then # Update
+		stop_instance
+		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg +exit
+		start_instance
+	fi
+}
+
+function start_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]] ; then
+		if instance_exists "$Instance"; then
+			systemctl start $(service_name "$Instance")
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			if systemctl -q is-enabled $(service_name "$Instance") ; then
+				start_instance "$Instance"
+			fi
+		done
+	fi
+}
+
+function stop_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]]; then
+		if instance_exists "$Instance"; then
+			systemctl stop $(service_name "$Instance")
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			stop_instance "$Instance"
+		done
+	fi
+}
+
+function enable_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]]; then
+		if instance_exists "$Instance"; then
+			systemctl enable $(service_name "$Instance")
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			enable_instance "$Instance"
+		done
+	fi
+}
+
+function disable_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]]; then
+		if instance_exists "$Instance"; then
+			systemctl disable $(service_name "$Instance")
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			disable_instance "$Instance"
+		done
+	fi
+}
+
+function run ()
+{
+	if [[ "$USER" == "$SteamUser" ]]; then
+		"$AppBin" "$@"
+	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
+		sudo -u "$SteamUser" "$AppBin" "$@"
+	else
+		echo "You must be a $SteamUser, root or sudo-user to run this command."
+	fi
+}
+
+function map_sync ()
+{
+	# TODO: implementation
+	# подсмотреть в скрипте старого серва
+	# либо забить хер и перевести всё на steamworkshop
+	# последний вариант наверное даже правильнее
+	echo "Dummy..."
+}
+
+function ban_sync ()
+{
+	# TODO: implementation
+	echo "Dummy..."
+}
+
+function map_rotate_save ()
+{
+	# TODO: implementation
+	echo "Dummy..."
+}
+
+function map_rotate_load ()
+{
+	# TODO: implementation
+	echo "Dummy..."
+}
+
+if [[ $# -eq 0 ]]; then show_help; exit 0; fi
+case $1 in
+	-h|--help            ) show_help;                                                                 ;;
+	-n|--new             ) if [[ "$EUID" -eq 0 ]]; then new_instance     "$2"; else run_as_root $@; fi;;
+	-d|--delete          ) if [[ "$EUID" -eq 0 ]]; then delete_instance  "$2"; else run_as_root $@; fi;;
+	-l|--list            ) show_instances;                                                            ;;
+	-s|--status          ) show_status                                   "$2";                        ;;
+	-u|--update          ) if [[ "$EUID" -eq 0 ]]; then update_kf2           ; else run_as_root $@; fi;;
+	-r|--run             ) run $@ ;                                                                   ;;
+	   --start           ) if [[ "$EUID" -eq 0 ]]; then start_instance   "$2"; else run_as_root $@; fi;;
+	   --stop            ) if [[ "$EUID" -eq 0 ]]; then stop_instance    "$2"; else run_as_root $@; fi;;
+	   --enable          ) if [[ "$EUID" -eq 0 ]]; then enable_instance  "$2"; else run_as_root $@; fi;;
+	   --disable         ) if [[ "$EUID" -eq 0 ]]; then disable_instance "$2"; else run_as_root $@; fi;;
+	   --map-sync        ) map_sync;                                                                  ;;
+	   --ban-sync        ) ban_sync;                                                                  ;;
+	   --map-rotate-save ) map_rotate_save;                                                           ;;
+	   --map-rotate-load ) map_rotate_load;                                                           ;;
+esac
