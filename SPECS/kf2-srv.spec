@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.8.0
+Version:   0.9.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -18,6 +18,7 @@ Source7:   main.conf.template
 Source8:   %{name}-beta@.service
 Source9:   %{name}-beta-update.service
 Source10:  %{name}-beta-update.timer
+Source11:  %{name}.conf
 
 Requires:  systemd >= 219
 Requires:  steamcmd
@@ -31,7 +32,7 @@ Requires:  util-linux
 Requires:  sudo
 Requires:  psmisc
 Requires:  gawk
-Requires:  multini >= 0.2
+Requires:  multini >= 0.2.3
 
 Provides:  %{name}
 
@@ -63,21 +64,23 @@ install -m 644 %{SOURCE7}  %{buildroot}/%{_sysconfdir}/%{name}
 install -m 644 %{SOURCE8}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE9}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE10} %{buildroot}/%{_prefix}/lib/systemd/system
+install -m 644 %{SOURCE11} %{buildroot}/%{_sysconfdir}/%{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%attr(775,root,%{steamuser}) %dir       %{_prefix}/games/%{name}
-%attr(775,root,%{steamuser}) %dir       %{_prefix}/games/%{name}-beta
-%attr(775,root,%{steamuser}) %dir       %{_sysconfdir}/%{name}
-%attr(775,root,%{steamuser}) %dir       %{_sysconfdir}/%{name}/instances
-%attr(775,root,%{steamuser}) %dir       %{_sysconfdir}/%{name}/instances-beta
-%attr(644,root,root) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
-%attr(644,root,root) %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
-%attr(755,root,root)                    %{_bindir}/%{name}
-%attr(755,root,root)                    %{_bindir}/%{name}-beta
-%attr(644,root,root)                    %{_prefix}/lib/systemd/system/*
+%attr(775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}
+%attr(775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}-beta
+%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
+%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
+%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
+%attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
+%attr(640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%attr(644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
+%attr(755,root,root)                            %{_bindir}/%{name}
+%attr(755,root,root)                            %{_bindir}/%{name}-beta
+%attr(644,root,root)                            %{_prefix}/lib/systemd/system/*
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
@@ -90,6 +93,14 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Wed May 27 2020 GenZmeY <genzmey@gmail.com> - 0.9.0-1
+- new main.conf format;
+- multiple WebAdmin and http auth by default;
+- online actions;
+- chat-bot;
+- set password;
+- refactoring.
+
 * Mon Apr 27 2020 GenZmeY <genzmey@gmail.com> - 0.8.0-1
 - use multini for ini edit;
 - add mutators support;
