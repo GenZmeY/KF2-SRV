@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.10.1
+Version:    0.11.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -20,6 +20,8 @@ Source9:    %{name}-beta-update.service
 Source10:   %{name}-beta-update.timer
 Source11:   %{name}.conf
 Source12:   COPYING
+Source13:   rsyslog-%{name}.conf
+Source14:   logrotate-%{name}
 
 Requires:   systemd >= 219
 Requires:   steamcmd
@@ -34,6 +36,8 @@ Requires:   sudo
 Requires:   psmisc
 Requires:   gawk
 Requires:   multini >= 0.2.3
+Requires:   rsyslog >= 8.25.0
+Requires:   logrotate
 
 Provides:   %{name}
 
@@ -53,9 +57,13 @@ install -d %{buildroot}/%{_prefix}/lib/firewalld/services
 install -d %{buildroot}/%{_sysconfdir}/%{name}/instances
 install -d %{buildroot}/%{_sysconfdir}/%{name}/instances-beta
 install -d %{buildroot}/%{_sysconfdir}/%{name}/mapcycles
+install -d %{buildroot}/%{_sysconfdir}/rsyslog.d
+install -d %{buildroot}/%{_sysconfdir}/logrotate.d
 install -d %{buildroot}/%{_prefix}/games/%{name}
 install -d %{buildroot}/%{_prefix}/games/%{name}-beta
 install -d %{buildroot}/%{_datadir}/licenses/%{name}
+install -d %{buildroot}/%{_localstatedir}/log/%{name}
+install -d %{buildroot}/%{_localstatedir}/log/%{name}-beta
 
 # access rights are used here to prevent warnings when building the package
 install -m 755 %{SOURCE1}  %{buildroot}/%{_bindir}
@@ -70,6 +78,8 @@ install -m 644 %{SOURCE9}  %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE10} %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 644 %{SOURCE11} %{buildroot}/%{_sysconfdir}/%{name}
 install -m 644 %{SOURCE12} %{buildroot}/%{_datadir}/licenses/%{name}
+install -m 644 %{SOURCE13} %{buildroot}/%{_sysconfdir}/rsyslog.d/%{name}.conf
+install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -81,6 +91,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
+%attr(775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
+%attr(775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
 %attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
 %attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -88,6 +100,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root)                            %{_bindir}/%{name}-beta
 %attr(644,root,root)                            %{_prefix}/lib/systemd/system/*
 %attr(644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
+%attr(644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
+%attr(644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
@@ -99,7 +113,14 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 	rm -rf %{_sysconfdir}/%{name}/instances-beta/default
 fi
 
+%post
+systemctl daemon-reload
+systemctl restart rsyslog.service
+
 %changelog
+* Wed Jul 8 2020 GenZmeY <genzmey@gmail.com> - 0.11.0-1
+- logging (rsyslog + logrotate).
+
 * Wed Jul 8 2020 GenZmeY <genzmey@gmail.com> - 0.10.1-1
 - add COPYING to distributive;
 - add license info to kf2-srv-beta;
