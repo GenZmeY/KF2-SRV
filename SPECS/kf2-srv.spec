@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.3.0
+Version:   0.4.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -77,6 +77,12 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Sun Sep 29 2019 GenZmeY <genzmey@gmail.com> - 0.4.0-1
+- Reworked main.template and kf2-srv@.service;
+- Add --restart option;
+- --status option shows more info;
+- --list option removed.
+
 * Fri Sep 20 2019 GenZmeY <genzmey@gmail.com> - 0.3.0-1
 - validate option;
 - auto validate on change active branch;

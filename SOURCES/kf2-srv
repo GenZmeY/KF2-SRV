@@ -33,6 +33,15 @@ InstanceConfigDir="$DefaultConfigDir/instances"
 InstanceConfigLnk="/etc/kf2-srv/instances"
 MainConfigTemplate="/etc/kf2-srv/main.conf.template"
 
+DiffArray=('Normal' 'Hard' 'Suicide' 'Hell')
+WaveArray=('4' '7' '10')
+declare -A ModeArray
+ModeArray['KFGameContent.KFGameInfo_Survival']='Survival'
+ModeArray['KFGameContent.KFGameInfo_WeeklySurvival']='Weekly'
+ModeArray['KFGameContent.KFGameInfo_Endless']='Endless'
+ModeArray['KFGameContent.KFGameInfo_Objective']='Objective'
+ModeArray['KFGameContent.KFGameInfo_VersusSurvival']='Versus'
+		
 function show_help ()
 {
 	echo "$ScriptName"
@@ -45,7 +54,6 @@ function show_help ()
 	echo "  -n, --new       INSTANCE  создает новый ЭКЗЕМПЛЯР сервера"
 	echo "  -d, --delete   [INSTANCE] удаляет указанный ЭКЗМПЛЯР сервера; если"
 	echo "                            ЭКЗЕМПЛЯР не указан, удаляет все сервера"
-	echo "  -l, --list                перечисляет все имеющиеся экземпляры сервера"
 	echo "  -s, --status   [INSTANCE] отображает состояние указанного ЭКЗЕМПЛЯРА"
 	echo "                            сервера; если ЭКЗЕМПЛЯР не указан,"
 	echo "                            отображает состояние всех экземпляров сервера"
@@ -62,6 +70,9 @@ function show_help ()
 	echo "      --stop     [INSTANCE] останавливает указанный ЭКЗЕМПЛЯР сервера;"
 	echo "                            если ЭКЗЕМПЛЯР не указан, останавливает все"
 	echo "                            экземпляры сервера"
+	echo "      --restart  [INSTANCE] перезапускает указанный ЭКЗЕМПЛЯР сервера;"
+	echo "                            если ЭКЗЕМПЛЯР не указан, перезапускает"
+	echo "                            все автозапускаемые экземпляры сервера"
 	echo "      --enable   [INSTANCE] добавляет указанный ЭКЗЕМПЛЯР сервера в"
 	echo "                            автозапуск; если ЭКЗЕМПЛЯР не указан,"
 	echo "                            добавляет все экземпляры сервера в автозапуск"
@@ -73,9 +84,6 @@ function show_help ()
 	echo "                            имеющимися файлами сторонних карт; если"
 	echo "                            ЭКЗЕМПЛЯР не указан, синхронизирует все"
 	echo "                            экземпляры серверов"
-	echo "      --ban-sync            TODO: description & implementation"
-	echo "      --map-rotate-save     TODO: description & implementation"
-	echo "      --map-rotate-load     TODO: description & implementation"
 	echo "  -h, --help                display this help and exit"
 }
 
@@ -159,7 +167,7 @@ function new_instance () # $1: InstanceName
 	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
 	cp -a "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
 
-	echo "Instance $Instance created. See $InstanceDir for edit configuration"
+	echo "Instance $Instance created. See /etc/$ScriptName/instances/$Instance for edit configuration"
 }
 
 function delete_instance () # $1: [InstanceName]
@@ -200,13 +208,34 @@ function show_status_implementation () # $1: [InstanceName]
 		else
 			local IsRuning="dead"
 		fi
+		
 		local Description=$(grep -P 'Description=' "$InstanceConfigDir/$Instance/main.conf" | sed -r 's/(Description=|")//g')
 		local GamePort=$(grep -Po '"-port=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
 		local WebAdminPort=$(grep -Po '"-webadminport=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
 		local QueryPort=$(grep -Po '"-queryport=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
-		echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$Description"
+		local GameType=$(grep -Po 'Game=([^\?]+)' "$InstanceConfigDir/$Instance/main.conf" | sed -r 's/Game=([^?]+)/\1/g' )
+		local GameLength=$(grep -Po 'GameLength=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
+		local GameDifficulty=$(grep -Po 'Difficulty=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
+		
+		local DisplayGameType=${ModeArray[$GameType]}
+		local DisplayGameLength=${WaveArray[$GameLength]}
+		local DisplayDifficulty=${DiffArray[$GameDifficulty]}
+		
+		if [[ "$DisplayGameType" == 'Weekly' || \
+			  "$DisplayGameType" == 'Endless' || \
+			  "$DisplayGameType" == 'Versus' || \
+			  "$DisplayGameType" == 'Objective' ]]; then
+			DisplayGameLength='-'
+		fi
+		
+		if [[ "$DisplayGameType" == 'Weekly' || \
+			  "$DisplayGameType" == 'Versus' ]]; then
+			DisplayDifficulty='-'
+		fi
+		
+		echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$DisplayGameType:$DisplayGameLength:$DisplayDifficulty:$Description"
 	else
-		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:DESCRIPTION"
+		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:TYPE:LEN:DIFF:DESCRIPTION"
 		for Instance in $(show_instances)
 		do
 			show_status_implementation "$Instance"
@@ -236,10 +265,10 @@ function update_kf2 ()
 		local BetaArg="-beta $BranchName"
 	fi
 	if ! server_exists; then # First install
-		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
-		mkdir "$InstanceConfigDir" "$CustomMapsDir" && chown -R "$SteamUser:$SteamUser" "$InstallDir/KFGame"
+		mkdir -p "$InstanceConfigDir" "$CustomMapsDir" && chown -R "$SteamUser:$SteamUser" "$InstallDir/KFGame"
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
 		echo "$BranchName" > "$ActiveBranch"
+		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
 	elif updates_aviable; then # Update
 		if [[ "$BranchName" == $(cat "$ActiveBranch") ]]; then
 			stop_instance
@@ -283,6 +312,25 @@ function stop_instance () # $1: [InstanceName]
 		for Instance in $(show_instances)
 		do
 			stop_instance "$Instance"
+		done
+	fi
+}
+
+function restart_instance () # $1: [InstanceName]
+{
+	local Instance="$1"
+	if [[ -n "$Instance" ]] ; then
+		if instance_exists "$Instance"; then
+			systemctl restart $(service_name "$Instance")
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	else
+		for Instance in $(show_instances)
+		do
+			if systemctl -q is-enabled $(service_name "$Instance") ; then
+				restart_instance "$Instance"
+			fi
 		done
 	fi
 }
@@ -369,12 +417,6 @@ bPlayableInObjective=False" >> "$Config"
 	fi
 }
 
-function ban_sync ()
-{
-	# TODO: implementation
-	echo "Dummy..."
-}
-
 function map_rotate_save ()
 {
 	# TODO: implementation
@@ -392,17 +434,17 @@ case $1 in
 	-h|--help            ) show_help;                                                                 ;;
 	-n|--new             ) if [[ "$EUID" -eq 0 ]]; then new_instance     "$2"; else run_as_root $@; fi;;
 	-d|--delete          ) if [[ "$EUID" -eq 0 ]]; then delete_instance  "$2"; else run_as_root $@; fi;;
-	-l|--list            ) show_instances;                                                            ;;
 	-s|--status          ) show_status                                   "$2";                        ;;
 	-u|--update          ) if [[ "$EUID" -eq 0 ]]; then update_kf2           ; else run_as_root $@; fi;;
 	-v|--validate        ) if [[ "$EUID" -eq 0 ]]; then validate             ; else run_as_root $@; fi;;
 	-r|--run             ) run $@ ;                                                                   ;;
 	   --start           ) if [[ "$EUID" -eq 0 ]]; then start_instance   "$2"; else run_as_root $@; fi;;
 	   --stop            ) if [[ "$EUID" -eq 0 ]]; then stop_instance    "$2"; else run_as_root $@; fi;;
+	   --restart         ) if [[ "$EUID" -eq 0 ]]; then restart_instance "$2"; else run_as_root $@; fi;;
 	   --enable          ) if [[ "$EUID" -eq 0 ]]; then enable_instance  "$2"; else run_as_root $@; fi;;
 	   --disable         ) if [[ "$EUID" -eq 0 ]]; then disable_instance "$2"; else run_as_root $@; fi;;
 	   --map-sync        ) if [[ "$EUID" -eq 0 ]]; then map_sync         "$2"; else run_as_root $@; fi;;
-	   --ban-sync        ) ban_sync;                                                                  ;;
 	   --map-rotate-save ) map_rotate_save;                                                           ;;
 	   --map-rotate-load ) map_rotate_load;                                                           ;;
+	   *                 ) echo "Command not recognized: $1"; exit 1                                  ;;
 esac
