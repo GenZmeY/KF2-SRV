@@ -22,8 +22,10 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
+
 AppNum="232130"
 InstallDir="/usr/games/kf2-srv"
+ActiveBranch="$InstallDir/activebranch.txt"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 DefaultConfigDir="$InstallDir/KFGame/Config"
 CustomMapsDir="$InstallDir/KFGame/Cache"
@@ -50,7 +52,9 @@ function show_help ()
 	echo "  -u, --update              при первом запуске производит установку KF2;"
 	echo "                            в дальнейшем устанавливает обновления при их" 
 	echo "                            наличии"
-	echo "  -r. --run      [OPTIONS]  запускает экземпляр сервера с указанными"
+	echo "  -v, --validate            проверяет целостность файлов, при"
+	echo "                            необходимости перекачивает их."
+	echo "  -r, --run      [OPTIONS]  запускает экземпляр сервера с указанными"
 	echo "                            ПАРАМЕТРАМИ"
 	echo "      --start    [INSTANCE] запускает указанный ЭКЗЕМПЛЯР сервера; если"
 	echo "                            ЭКЗЕМПЛЯР не указан, запускает все"
@@ -197,9 +201,12 @@ function show_status_implementation () # $1: [InstanceName]
 			local IsRuning="dead"
 		fi
 		local Description=$(grep -P 'Description=' "$InstanceConfigDir/$Instance/main.conf" | sed -r 's/(Description=|")//g')
-		echo -e "$Instance:$IsEnabled:$IsRuning:$Description"
+		local GamePort=$(grep -Po '"-port=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
+		local WebAdminPort=$(grep -Po '"-webadminport=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
+		local QueryPort=$(grep -Po '"-queryport=([0-9]+)' "$InstanceConfigDir/$Instance/main.conf" | grep -Po '[0-9]+$')
+		echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$Description"
 	else
-		echo -e "INSTANCE:AUTORUN:STATE:DESCRIPTION"
+		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:DESCRIPTION"
 		for Instance in $(show_instances)
 		do
 			show_status_implementation "$Instance"
@@ -212,20 +219,35 @@ function show_status () # $1: [InstanceName]
 	show_status_implementation "$1" | column -t -s :
 }
 
+function validate ()
+{
+	if [[ -n "$BranchName" ]]; then
+		local BetaArg="-beta $BranchName"
+	fi
+	stop_instance
+	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
+	echo "$BranchName" > "$ActiveBranch"
+	start_instance
+}
+
 function update_kf2 ()
 {
 	if [[ -n "$BranchName" ]]; then
 		local BetaArg="-beta $BranchName"
 	fi
 	if ! server_exists; then # First install
-		chown "root:$SteamUser" "$InstallDir"
 		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
 		mkdir "$InstanceConfigDir" "$CustomMapsDir" && chown -R "$SteamUser:$SteamUser" "$InstallDir/KFGame"
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
+		echo "$BranchName" > "$ActiveBranch"
 	elif updates_aviable; then # Update
-		stop_instance
-		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg +exit
-		start_instance
+		if [[ "$BranchName" == $(cat "$ActiveBranch") ]]; then
+			stop_instance
+			steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg +exit
+			start_instance
+		else
+			validate
+		fi
 	fi
 }
 
@@ -373,6 +395,7 @@ case $1 in
 	-l|--list            ) show_instances;                                                            ;;
 	-s|--status          ) show_status                                   "$2";                        ;;
 	-u|--update          ) if [[ "$EUID" -eq 0 ]]; then update_kf2           ; else run_as_root $@; fi;;
+	-v|--validate        ) if [[ "$EUID" -eq 0 ]]; then validate             ; else run_as_root $@; fi;;
 	-r|--run             ) run $@ ;                                                                   ;;
 	   --start           ) if [[ "$EUID" -eq 0 ]]; then start_instance   "$2"; else run_as_root $@; fi;;
 	   --stop            ) if [[ "$EUID" -eq 0 ]]; then stop_instance    "$2"; else run_as_root $@; fi;;
