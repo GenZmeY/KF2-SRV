@@ -21,7 +21,7 @@ source /etc/steamcmd/steamcmd.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-ScriptVersion="0.7.0"
+ScriptVersion="0.8.0"
 
 AppServerNum="232130"
 AppClientNum="232090"
@@ -74,14 +74,14 @@ function show_help ()
 	echo " -di, --disable  [INSTANCE] удаляет указанный ЭКЗЕМПЛЯР сервера из"
 	echo "                            автозапуска; если ЭКЗЕМПЛЯР не указан,"
 	echo "                            удаляет все экземпляры сервера из автозапуска"
-	echo " -ml, --map-list            отображает список карт из SteamWorkshop"
-	echo " -ms, --map-sync            синхронизирует списки сторонних карт в"
+	echo " -wl, --workshop-list       отображает список ресурсов из SteamWorkshop"
+	echo " -wa, --workshop-add [MAP_ID] добавляет ресурс из SteamWorkshop по URL или"
+	echo "                            WorkshopID"
+	echo " -wd, --workshop-del [MAP_ID] удаляет ресурс SteamWorkshop по URL или WorkshopID"
+	echo " -ws, --workshop-sync       синхронизирует списки сторонних карт в"
 	echo "                            конфигурационных файлах с имеющимися файлами"
 	echo "                            сторонних карт; синхронизирует списки карт из"
 	echo "                            SteamWorkshop между всеми экземплярами серверов"
-	echo " -ma, --map-add  [MAP_ID]   добавляет карту из SteamWorkshop по URL или"
-	echo "                            WorkshopID"
-	echo " -md, --map-del  [MAP_ID]   удаляет карту SteamWorkshop по URL или WorkshopID"
 	echo "-mrs, --map-rotate-save [INSTANCE] сохраняет текущий порядок карт для"
 	echo "                            указанного ЭКЗЕМПЛЯРА сервера; если ЭКЗЕМПЛЯР"
 	echo "                            не указан, сохраняет порядок для всех ЭКЗЕМПЛЯРОВ"
@@ -163,7 +163,8 @@ function server_exists ()
 
 function updates_aviable ()
 {
-	# TODO: check
+	return 0 # steamcmd does not show updates even if they are :(
+	# TODO: check updates correctly (but how?)
 	if [[ -n "$BetaPostfix" ]]; then
 		local BetaArg="-beta preview"
 	fi
@@ -343,6 +344,7 @@ function validate ()
 	fi
 	stop_instance
 	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
+	fix_steamclient_so
 	start_instance
 }
 
@@ -379,6 +381,7 @@ function make_default_instance ()
 	install    -g "$SteamUser" -o "$SteamUser" -m 664 "$MainConfigTemplate" "$InstanceDir/main.conf"
 	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
 	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
+	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"
 	ln -s "$DefaultConfigDir/LinuxServer-KFEngine.ini"                      "$InstanceDir/LinuxServer-KFEngine.ini"
 	ln -s "$DefaultConfigDir/LinuxServer-KFGame.ini"                        "$InstanceDir/LinuxServer-KFGame.ini"
 	ln -s "$DefaultConfigDir/LinuxServer-KFInput.ini"                       "$InstanceDir/LinuxServer-KFInput.ini"
@@ -404,28 +407,28 @@ function create_map_dirs ()
 	# space saving
 	local InstallDirOrig="/usr/games/kf2-srv"
 	local InstallDirBeta="/usr/games/kf2-srv-beta"
-	local DownloadMapsDirOrig="$InstallDirOrig/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-	local CacheMapsDirOrig="$InstallDirOrig/KFGame/Cache"
-	local DownloadMapsDirBeta="$InstallDirBeta/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-	local CacheMapsDirBeta="$InstallDirBeta/KFGame/Cache"
+	local DownloadDirOrig="$InstallDirOrig/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+	local CacheDirOrig="$InstallDirOrig/KFGame/Cache"
+	local DownloadDirBeta="$InstallDirBeta/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+	local CacheDirBeta="$InstallDirBeta/KFGame/Cache"
 	
 	if [[ -z "$BetaPostfix" ]]; then # Orig
-		sudo -u "$SteamUser" install -d -m 775 "$DownloadMapsDirOrig"
-		if [[ -d "$CacheMapsDirBeta" ]]; then
-			ln -s "$CacheMapsDirBeta" "$CacheMapsDirOrig"
-			rm -rf "$DownloadMapsDirOrig"
-			ln -s "$DownloadMapsDirBeta" "$DownloadMapsDirOrig"
+		sudo -u "$SteamUser" install -d -m 775 "$DownloadDirOrig"
+		if [[ -d "$CacheDirBeta" ]]; then
+			ln -s "$CacheDirBeta" "$CacheDirOrig"
+			rm -rf "$DownloadDirOrig"
+			ln -s "$DownloadDirBeta" "$DownloadDirOrig"
 		else
-			sudo -u "$SteamUser" install -d -m 775 "$CacheMapsDirOrig"
+			sudo -u "$SteamUser" install -d -m 775 "$CacheDirOrig"
 		fi
 	else # Beta
-		sudo -u "$SteamUser" install -d -m 775 "$DownloadMapsDirBeta"
-		if [[ -d "$CacheMapsDirOrig" ]]; then
-			ln -s "$CacheMapsDirOrig" "$CacheMapsDirBeta"
-			rm -rf "$DownloadMapsDirBeta"
-			ln -s "$DownloadMapsDirOrig" "$DownloadMapsDirBeta"
+		sudo -u "$SteamUser" install -d -m 775 "$DownloadDirBeta"
+		if [[ -d "$CacheDirOrig" ]]; then
+			ln -s "$CacheDirOrig" "$CacheDirBeta"
+			rm -rf "$DownloadDirBeta"
+			ln -s "$DownloadDirOrig" "$DownloadDirBeta"
 		else
-			sudo -u "$SteamUser" install -d -m 775 "$CacheMapsDirBeta"
+			sudo -u "$SteamUser" install -d -m 775 "$CacheDirBeta"
 		fi
 	fi
 }
@@ -456,9 +459,9 @@ function update_kf2 ()
 			   	break
 			fi
 			sleep 2
-			# TODO: KFWeb.ini > webadmin=true
 		done
 		killall -KILL KFGameSteamServer.bin.x86_64
+		multini -s "$DefaultConfigDir/KFWeb.ini" "IpDrv.WebServer" "bEnabled" "true"
 		create_map_dirs
 		fix_steamclient_so
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
@@ -607,48 +610,60 @@ function run ()
 	fi
 }
 
-function map_list_body () # $1: MaplistFile
+function name_by_workshopID () # $1: WorkshopID
+{
+	local WorkshopID="$1"
+	local Cache="$CacheDir/$WorkshopID"
+	local Result=""
+	if [[ -d "$Cache" ]]; then
+		Result=$(find "$Cache" -type f -name '*.kfm' -printf '%f\n' | head -n 1)
+		if [[ -z "$Result" ]]; then
+			Result=$(find "$Cache" -type f -name '*.u' -printf '%f\n' | head -n 1)
+		fi
+	fi
+	echo "$Result"
+}
+
+function workshop_list_body () # $1: WorkshopListFile
 {
 	while read WorkshopID
 	do
-		local Cache="$CacheMapsDir/$WorkshopID"
-		local Downl="$DownloadMapsDir/$WorkshopID"
+		local Cache="$CacheDir/$WorkshopID"
+		local Downl="$DownloadDir/$WorkshopID"
 		local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
-		if [[ -d "$Cache" ]]; then
-			local MapName=$(find "$Cache" -type f -name '*.kfm' -printf '%f\n' | head -n 1)
+		local WsName=$(name_by_workshopID "$WorkshopID")
+		if [[ -n "$WsName" ]]; then
+			local WsSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
 		else
-			local MapName=""
+			local WsSize="-"; WsName="-"
 		fi
-		if [[ -n "$MapName" ]]; then
-			local MapSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
-		else
-			local MapSize="-"; MapName="-"
-		fi
-		echo "$MapName $MapSize $WorkshopID $Url"
+		echo "$WorkshopID $WsName $WsSize $Url"
 	done < "$1"
 }
 
-function map_list_full () # $1: MaplistFile
+function workshop_list_full () # $1: WorkshoplistFile
 {
-	echo "NAME SIZE WORKSHOP_ID WORKSHOP_URL"
-	map_list_body "$1" | sort -k 1
+	echo "WORKSHOP_ID NAME SIZE WORKSHOP_URL"
+	workshop_list_body "$1" | sort -k 2
 }
 
-function map_list () # $1: [--human-readable]
+function workshop_list () # $1: [--human-readable]
 {
-	local MapList=$(mktemp)
+	local WsList=$(mktemp)
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-		grep -F 'ServerSubscribedWorkshopItems=' "$Config" | sed -r 's/^.+=([0-9]+)$/\1/' >> "$MapList"
+		if multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems"; then
+			multini -g "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" >> "$WsList"
+		fi
 	done
-	sort -u "$MapList" -o "$MapList"
+	sort -u "$WsList" -o "$WsList"
 	if [[ -n "$1" ]]; then
-		map_list_full "$MapList" | column -t
+		workshop_list_full "$WsList" | column -t
 	else
-		cat "$MapList"
+		cat "$WsList"
 	fi
-	rm -f "$MapList"
+	rm -f "$WsList"
 }
 
 function any_to_workshopID () # $1: WorkshopID/URL
@@ -661,80 +676,76 @@ function any_to_workshopID () # $1: WorkshopID/URL
 	echo "$WorkshopID"
 }
 
-function map_add () # $*: WorkshopID[s]
+function workshop_add () # $*: WorkshopID[s]
 {
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-		if ! grep -qF '[OnlineSubsystemSteamworks.KFWorkshopSteamworks]' "$Config"; then 
-			echo -e '
-
-[OnlineSubsystemSteamworks.KFWorkshopSteamworks]' >> "$Config"
-		fi
-		if ! grep -qF 'DownloadManagers=OnlineSubsystemSteamworks.SteamWorkshopDownload' "$Config"; then 
-			sed -i --follow-symlinks -r '0,/DownloadManagers=/ s/^(DownloadManagers=.+)$/DownloadManagers=OnlineSubsystemSteamworks.SteamWorkshopDownload
-\1/' "$Config"
-		fi
+		multini -ar "$Config" "IpDrv.TcpNetDriver" "DownloadManagers" "OnlineSubsystemSteamworks.SteamWorkshopDownload"
 		for Map in $*
 		do
 			local WorkshopID=$(any_to_workshopID "$Map")
-			local MapStr="ServerSubscribedWorkshopItems=$WorkshopID"
-			if ! grep -qF "$MapStr" "$Config"; then
-				echo "Add map $WorkshopID to $Instance"
-				sed -i --follow-symlinks "/^\[OnlineSubsystemSteamworks\.KFWorkshopSteamworks\]/a $MapStr" "$Config"
+			if ! multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"; then
+				echo "Add workshop $WorkshopID to $Instance"
+				multini -ar "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
 			fi
 		done
 	done
 }
 
-function map_del () # $*: WorkshopID[s]
+function workshop_del () # $*: WorkshopID[s]
 {
-	# TODO: Remove lines from LinuxServer-KFGame.ini
-	# I need "crudini" with duplicate keys support >_<
 	for Map in $*
 	do
 		local WorkshopID=$(any_to_workshopID "$Map")
-		local Cache="$CacheMapsDir/$WorkshopID"
-		local Downl="$DownloadMapsDir/$WorkshopID"
+		local WsName=$(name_by_workshopID "$WorkshopID")
+		local Cache="$CacheDir/$WorkshopID"
+		local Downl="$DownloadDir/$WorkshopID"
 		echo -e "Clear cache:
 $Cache
 $Downl"
 		rm -rf "$Cache" "$Downl"
 		for Instance in $(show_instances)
 		do
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-			local MapStr="ServerSubscribedWorkshopItems=$WorkshopID"
-			if grep -qF "$MapStr" "$Config"; then
-				echo "Remove map $WorkshopID from $Instance"
-				sed -i --follow-symlinks "/$MapStr/d" "$Config"
+			local ConfigEngine="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
+			multini -d "$ConfigEngine" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
+			if echo "$WsName" | grep -qP '\.kfm$' ; then
+				echo "Remove map $WorkshopID ($WsName) from $Instance"
+				local WsNameShort=$(echo "$WsName" | sed 's/\.kfm$//')
+				local ConfigGame="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+				multini -d "$ConfigGame" "$WsNameShort KFMapSummary"
 			fi
 		done 
 	done
 }
 
-function map_sync ()
+function workshop_sync ()
 {
-	map_add $(map_list)
+	workshop_add $(workshop_list)
 	
 	for Instance in $(show_instances)
 	do
 		if instance_exists "$Instance"; then
 			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			for MapFile in $(find -L "$CacheMapsDir" -type f -name '*.kfm' -printf "%f\n")
+			for MapFile in $(find -L "$CacheDir" -type f -name '*.kfm' -printf "%f\n")
 			do
-				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||g')
-				if [[ ! -f "$Config" ]]; then
-					echo "$Config does not exist!"
-				elif ! grep -qP "MapName=$MapName[ ]*$" "$Config"; then
+				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||')
+				if ! multini -gq "$Config" "$MapName KFMapSummary"; then
 					echo "Adding $MapName to $Instance."
-					echo -e "
-[$MapName KFMapSummary]
-MapName=$MapName
-bPlayableInSurvival=True
-bPlayableInWeekly=True
-bPlayableInVsSurvival=True
-bPlayableInEndless=True
-bPlayableInObjective=False" >> "$Config"
+					multini -s "$Config" "$MapName KFMapSummary" "MapName" "$MapName"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInSurvival"   "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInWeekly"     "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInVsSurvival" "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInEndless"    "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInObjective"  "False"
+				fi
+			done
+			for MutFile in $(find -L "$CacheDir" -type f -name '*.u' -printf "%f\n")
+			do
+				MutName=$(echo "$MutFile" | sed -r 's|.u$||')
+				if ! multini -gq "$Config" "$MutName KFMutatorSummary"; then
+					echo "Adding $MutName to $Instance."
+					multini -s "$Config" "$MutName KFMutatorSummary" "ClassName" ""
 				fi
 			done
 		else
@@ -826,7 +837,9 @@ function ban_list () # $1: [--human-readable]
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		grep -P 'BannedIDs=' "$Config" | sed -r 's/.+A=([0-9]+),.+/\1/' >> "$BanList"
+		if multini -gq "$Config" "Engine.AccessControl" "BannedIDs"; then
+			multini -g "$Config" "Engine.AccessControl" "BannedIDs" | sed -r 's/.+A=([0-9]+),.+/\1/' >> "$BanList"
+		fi
 	done
 	sort -u "$BanList" -o "$BanList"
 	if [[ -n "$1" ]]; then
@@ -843,10 +856,10 @@ function ban_ID3 () # $1: ID3
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="BannedIDs=(Uid=(A=$ID3,B=$StrangeConstUID))"
-		if ! grep -qF "$BanStr" "$Config"; then
+		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		if ! multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
 			echo "Add ban $ID3 to $Instance"
-			sed -i --follow-symlinks "/^\[Engine\.AccessControl\]/a $BanStr" "$Config"
+			multini -a "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
 		fi
 	done 
 }
@@ -857,10 +870,10 @@ function unban_ID3 () # $1: ID3
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="BannedIDs=(Uid=(A=$ID3,B=$StrangeConstUID))"
-		if grep -qF "$BanStr" "$Config"; then
+		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		if multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
 			echo "Remove ban $ID3 from $Instance"
-			sed -i --follow-symlinks "/$BanStr/d" "$Config"
+			multini -d "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
 		fi
 	done 
 }
@@ -923,8 +936,8 @@ fi
 InstallDir="/usr/games/kf2-srv$BetaPostfix"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 DefaultConfigDir="$InstallDir/KFGame/Config"
-DownloadMapsDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-CacheMapsDir="$InstallDir/KFGame/Cache"
+DownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+CacheDir="$InstallDir/KFGame/Cache"
 InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
 InstanceConfigLnk="$DefaultConfigDir/instances"
 MainConfigTemplate="/etc/kf2-srv/main.conf.template"
@@ -943,10 +956,10 @@ case $1 in
 	 -rs|--restart         ) if [[ "$EUID" -eq 0 ]]; then shift; restart_instance $*; else run_as_root $*; fi ;;
 	 -en|--enable          ) if [[ "$EUID" -eq 0 ]]; then shift; enable_instance  $*; else run_as_root $*; fi ;;
 	 -di|--disable         ) if [[ "$EUID" -eq 0 ]]; then shift; disable_instance $*; else run_as_root $*; fi ;;
-	 -ml|--map-list        ) if [[ "$EUID" -eq 0 ]]; then shift; map_list "-h"      ; else run_as_root $*; fi ;;
-	 -ms|--map-sync        ) if [[ "$EUID" -eq 0 ]]; then shift; map_sync           ; else run_as_root $*; fi ;;
-	 -ma|--map-add         ) if [[ "$EUID" -eq 0 ]]; then shift; map_add          $*; else run_as_root $*; fi ;;
-	 -md|--map-del         ) if [[ "$EUID" -eq 0 ]]; then shift; map_del          $*; else run_as_root $*; fi ;;
+	 -wl|--workshop-list   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_list "-h" ; else run_as_root $*; fi ;;
+	 -wa|--workshop-add    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_add     $*; else run_as_root $*; fi ;;
+	 -wd|--workshop-del    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_del     $*; else run_as_root $*; fi ;;
+	 -ws|--workshop-sync   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_sync      ; else run_as_root $*; fi ;;
 	-mrs|--map-rotate-save ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_save  $*; else run_as_root $*; fi ;;
 	-mrl|--map-rotate-load ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_load  $*; else run_as_root $*; fi ;;
 	 -bl|--ban-list        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_list "-h"      ; else run_as_root $*; fi ;;

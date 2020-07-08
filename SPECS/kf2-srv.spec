@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.7.0
+Version:   0.8.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -31,6 +31,7 @@ Requires:  util-linux
 Requires:  sudo
 Requires:  psmisc
 Requires:  gawk
+Requires:  multini >= 0.2
 
 Provides:  %{name}
 
@@ -89,6 +90,12 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Mon Apr 27 2020 GenZmeY <genzmey@gmail.com> - 0.8.0-1
+- use multini for ini edit;
+- add mutators support;
+- refactoring;
+- returned "reboot-updates".
+
 * Sat Mar 7 2020 GenZmeY <genzmey@gmail.com> - 0.7.0-1
 - dual versions support;
 - check updates;
