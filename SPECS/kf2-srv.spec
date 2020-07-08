@@ -1,5 +1,7 @@
+%global steamuser steam
+
 Name:      kf2-srv
-Version:   0.2.1
+Version:   0.3.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -49,8 +51,8 @@ sed -i -r "s|^(InstallDir=).*$|\1\"%{_prefix}/games/%{name}\"|g" %{buildroot}/%{
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%attr(775,root,root) %dir               %{_prefix}/games/%{name}
-%attr(755,root,root) %dir               %{_sysconfdir}/%{name}
+%attr(775,root,%{steamuser}) %dir       %{_prefix}/games/%{name}
+%attr(755,root,root)         %dir       %{_sysconfdir}/%{name}
 %attr(644,root,root)                    %{_sysconfdir}/%{name}/main.conf.template
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(644,root,root) %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -75,6 +77,11 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Fri Sep 20 2019 GenZmeY <genzmey@gmail.com> - 0.3.0-1
+- validate option;
+- auto validate on change active branch;
+- port info on --status.
+
 * Mon Sep 16 2019 GenZmeY <genzmey@gmail.com> - 0.2.1-1
 - --map-sync bugfixes.
 
