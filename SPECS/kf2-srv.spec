@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.4.0
+Version:   0.5.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -18,6 +18,7 @@ Source7:   main.conf.template
 
 Requires:  systemd >= 219
 Requires:  steamcmd
+Requires:  libxml2
 
 Provides:  %{name}
 
@@ -34,7 +35,7 @@ rm -rf $RPM_BUILD_ROOT
 install -m 755 -d %{buildroot}/%{_bindir}
 install -m 755 -d %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 755 -d %{buildroot}/%{_prefix}/lib/firewalld/services
-install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}
+install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/instances
 install -m 644 -d %{buildroot}/%{_prefix}/games/%{name}
 
 install -m 755 %{SOURCE1} %{buildroot}/%{_bindir}
@@ -52,7 +53,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %attr(775,root,%{steamuser}) %dir       %{_prefix}/games/%{name}
-%attr(755,root,root)         %dir       %{_sysconfdir}/%{name}
+%attr(775,root,%{steamuser}) %dir       %{_sysconfdir}/%{name}
+%attr(775,root,%{steamuser}) %dir       %{_sysconfdir}/%{name}/instances
 %attr(644,root,root)                    %{_sysconfdir}/%{name}/main.conf.template
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(644,root,root) %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -71,12 +73,15 @@ rm -rf $RPM_BUILD_ROOT
 if [[ $1 -eq 0 ]] ; then # Uninstall
 	%{_bindir}/%{name} --stop
 	%{_bindir}/%{name} --disable
-	yes | %{_bindir}/%{name} --delete
-	rm -f %{_sysconfdir}/%{name}/instances
 	rm -rf %{_prefix}/games/%{name}/*
 fi
 
 %changelog
+* Sun Jan 12 2020 GenZmeY <genzmey@gmail.com> - 0.5.0-1
+- ban admin;
+- map admin;
+- multiple args support.
+
 * Sun Sep 29 2019 GenZmeY <genzmey@gmail.com> - 0.4.0-1
 - Reworked main.template and kf2-srv@.service;
 - Add --restart option;
