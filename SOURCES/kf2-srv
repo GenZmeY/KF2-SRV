@@ -26,7 +26,7 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-ScriptVersion="0.9.0"
+ScriptVersion="0.9.1"
 
 # Constants. Don't change.
 AppServerNum="232130"
@@ -453,9 +453,6 @@ function create_map_dirs ()
 
 function first_install ()
 {
-	# TODO: Replace killall
-	# kill -INT $PID?
-	# sudo is stopping me from knowing pid
 	if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
 		echo "Errors during installation - exit"
 		exit 1
@@ -873,6 +870,7 @@ function map_rotate_to_webstring () # $1: MapRotate
 	echo "$1" | \
 	sed -r 's/^\(Maps=\("//' | \
 	sed -r 's/"\)\)$//' | \
+	sed 's/ /+/g' | \
 	sed "s/\",\"/${RN}/g"
 }
 
