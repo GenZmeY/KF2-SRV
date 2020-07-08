@@ -28,8 +28,10 @@ Game=KFGameContent.KFGameInfo_Endless
 # 10 waves:       2
 Length=2
 
+# Mutators
+Mutators=
+
 # Additional parameters
-# If the parameter is used, it must necessarily begin with a character '?'
 Args=
 
 # Notes for yourself

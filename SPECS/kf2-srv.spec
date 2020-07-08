@@ -1,40 +1,40 @@
 %global steamuser steam
 
-Name:      kf2-srv
-Version:   0.9.1
-Release:   1%{dist}
-Summary:   Killing Floor 2 server
-Group:     Amusements/Games
-License:   GNU GPLv3
-BuildArch: noarch
+Name:       kf2-srv
+Version:    0.10.0
+Release:    1%{dist}
+Summary:    Killing Floor 2 server
+Group:      Amusements/Games
+License:    GNU GPLv3
+BuildArch:  noarch
 
-Source1:   %{name}
-Source2:   %{name}-beta
-Source3:   %{name}.xml
-Source4:   %{name}@.service
-Source5:   %{name}-update.service
-Source6:   %{name}-update.timer
-Source7:   main.conf.template
-Source8:   %{name}-beta@.service
-Source9:   %{name}-beta-update.service
-Source10:  %{name}-beta-update.timer
-Source11:  %{name}.conf
+Source1:    %{name}
+Source2:    %{name}-beta
+Source3:    %{name}.xml
+Source4:    %{name}@.service
+Source5:    %{name}-update.service
+Source6:    %{name}-update.timer
+Source7:    main.conf.template
+Source8:    %{name}-beta@.service
+Source9:    %{name}-beta-update.service
+Source10:   %{name}-beta-update.timer
+Source11:   %{name}.conf
 
-Requires:  systemd >= 219
-Requires:  steamcmd
-Requires:  libxml2
-Requires:  dos2unix
-Requires:  curl
-Requires:  grep
-Requires:  coreutils
-Requires:  sed
-Requires:  util-linux
-Requires:  sudo
-Requires:  psmisc
-Requires:  gawk
-Requires:  multini >= 0.2.3
+Requires:   systemd >= 219
+Requires:   steamcmd
+Requires:   libxml2
+Requires:   dos2unix
+Requires:   curl
+Requires:   grep
+Requires:   coreutils
+Requires:   sed
+Requires:   util-linux
+Requires:   sudo
+Requires:   psmisc
+Requires:   gawk
+Requires:   multini >= 0.2.3
 
-Provides:  %{name}
+Provides:   %{name}
 
 %description
 Command line tool for managing a set of Killing Floor 2 servers.
@@ -95,6 +95,13 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Mon Jun 22 2020 GenZmeY <genzmey@gmail.com> - 0.10.0-1
+- separate mutators setting;
+- mutator column in server list;
+- chat notifications on restart for updates;
+- unban on working servers;
+- refactoring.
+
 * Sun May 31 2020 GenZmeY <genzmey@gmail.com> - 0.9.1-1
 - fix realtime -mrl with spaces;
 - mapcycles directory.

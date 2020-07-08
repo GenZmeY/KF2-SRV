@@ -2,7 +2,21 @@
 Description=Check and Update Killing Floor 2 server
 
 [Service]
-Type=simple
+Type=oneshot
+
+ExecStart=/usr/bin/kf2-srv-beta --chat 'Scheduled server restart at 4:00 (MSK)'
+ExecStart=/usr/bin/kf2-srv-beta --chat 'Server will restart after 30 minutes'
+ExecStart=/bin/sleep 15m
+
+ExecStart=/usr/bin/kf2-srv-beta --chat 'Server will restart after 15 minutes'
+ExecStart=/bin/sleep 10m
+
+ExecStart=/usr/bin/kf2-srv-beta --chat 'Server will restart after 5 minutes'
+ExecStart=/bin/sleep 5m
+
+ExecStart=/usr/bin/kf2-srv-beta --chat 'Server shutting down...'
+ExecStart=/bin/sleep 5s
+
 ExecStart=/usr/bin/kf2-srv-beta --update
 
 PrivateTmp=true

@@ -17,22 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-declare -a DiffArray
-declare -a WaveArray
-declare -A ModeArray
+declare -a DiffNames
+declare -a WaveNames
+declare -A ModeNames
+declare -A MutNames
 
 source /etc/steamcmd/steamcmd.conf
 source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-ScriptVersion="0.9.1"
+readonly ScriptVersion="0.10.0"
 
 # Constants. Don't change.
-AppServerNum="232130"
-AppClientNum="232090"
-StrangeConstUID="17825793"
-ServerBotLogin="srvbot" 
+readonly AppServerNum="232130"
+readonly AppClientNum="232090"
+readonly StrangeConstUID="17825793"
+readonly ServerBotLogin="srvbot" 
 
 function show_help ()
 {
@@ -276,76 +277,95 @@ function delete_instance () # $*: [InstanceName[s]]
 	fi
 }
 
-function show_status_implementation_body () # $*: [InstanceName[s]]
+function instance_status () # $1: InstanceName
 {
-	for Instance in $InstanceList
-	do
-		if systemctl -q is-enabled $(service_name "$Instance"); then
-			local IsEnabled="enabled"
-		else
-			local IsEnabled="disabled"
-		fi
-		if systemctl | grep $(service_name "$Instance") | grep -q 'running' ; then
-			local IsRuning="running"
-		else
-			local IsRuning="stopped"
-		fi
-		
-		local Comment=$(        multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Comment")
-		local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortGame")
-		local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortWeb")
-		local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortQuery")
-		local GameType=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Game")
-		local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Length")
-		local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Difficulty")
-		local Map=$(            multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Map")
-		local Args=$(           multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Args")
-		
-		local DisplayGameType=${ModeArray[$GameType]}
-		local DisplayGameLength=${WaveArray[$GameLength]}
-		local DisplayDifficulty=${DiffArray[$GameDifficulty]}
-		
-		if [[ -z "$DisplayGameType" ]]; then
-			DisplayGameType="$GameType"
-		fi
-		
-		if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival'  || \
-			  "$GameType" == 'KFGameContent.KFGameInfo_Endless' || \
-			  "$GameType" == 'KFGameContent.KFGameInfo_VersusSurvival'  || \
-			  "$GameType" == 'KFGameContent.KFGameInfo_Objective' ]]; then
-			DisplayGameLength='-'
-		fi
-		
-		if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival' || \
-			  "$DisplayGameType" == 'KFGameContent.KFGameInfo_VersusSurvival' ]]; then
-			DisplayDifficulty='-'
-		fi
-		
-		echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$DisplayGameType:$DisplayGameLength:$DisplayDifficulty:$Args:$Comment"
-	done
-}
-
-function show_status_implementation_full () # $*: [InstanceName[s]]
-{
-	local InstanceList=""
-	if [[ -z "$*" ]] ; then
-		InstanceList=$(show_instances)
+	local Instance="$1"
+	if ! instance_exists "$Instance"; then return 1; fi
+	if systemctl -q is-enabled $(service_name "$Instance"); then
+		local IsEnabled="enabled"
 	else
-		for Instance in $*
-		do
-			if instance_exists "$Instance"; then
-				InstanceList+=" $Instance" 
-			fi
-		done
+		local IsEnabled="disabled"
+	fi
+	if systemctl | grep $(service_name "$Instance") | grep -q 'running' ; then
+		local IsRuning="running"
+	else
+		local IsRuning="stopped"
+	fi
+	local Comment=$(        multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Comment")
+	local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortGame")
+	local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortWeb")
+	local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortQuery")
+	local GameType=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Game")
+	local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Length")
+	local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Difficulty")
+	local Map=$(            multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Map")
+	local Mutators=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Mutators")
+	local Args=$(           multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Args")
+	
+	local DisplayGameType=''
+	local DisplayGameLength=''
+	local DisplayDifficulty=''
+	local DisplayMutators=''
+	
+	for Mutator in ${Mutators//,/ }
+	do
+		local MutName=${MutNames[$Mutator]}
+		if [[ -z "$MutName" ]]; then
+			MutName="$Mutator"
+		fi
+		if [[ -z "$DisplayMutators" ]]; then
+			DisplayMutators="$MutName"
+		else
+			DisplayMutators="$DisplayMutators, $MutName"
+		fi
+	done
+	
+	if [[ -n "$GameType"       ]]; then DisplayGameType=${ModeNames[$GameType]}         ; fi
+	if [[ -n "$GameLength"     ]]; then DisplayGameLength=${WaveNames[$GameLength]}     ; fi
+	if [[ -n "$GameDifficulty" ]]; then DisplayDifficulty=${DiffNames[$GameDifficulty]} ; fi
+	
+	if [[ -z "$DisplayMutators" ]] && [[ -z "$Mutators" ]]; then
+		DisplayMutators='-'
 	fi
 	
-	echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:TYPE:LEN:DIFF:ARGS:COMMENT"
-	show_status_implementation_body "$InstanceList" | sort -t : -k 4
+	if [[ -z "$DisplayGameType" ]]; then
+		DisplayGameType="$GameType"
+	fi
+	
+	if [[ -z "$Args" ]]; then
+		Args='-'
+	fi
+	
+	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival'  || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_Endless' || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_VersusSurvival'  || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_Objective' ]]; then
+		DisplayGameLength='-'
+	fi
+	
+	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival' || \
+		  "$DisplayGameType" == 'KFGameContent.KFGameInfo_VersusSurvival' ]]; then
+		DisplayDifficulty='-'
+	fi
+	
+	echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$DisplayGameType:$DisplayGameLength:$DisplayDifficulty:$DisplayMutators:$Args:$Comment"
 }
 
 function show_status () # $*: [InstanceName[s]]
 {
-	show_status_implementation_full $* | column -t -s :
+	{
+		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:TYPE:LEN:DIFF:MUTATORS:ARGS:COMMENT"
+		{
+			local InstanceList="$*"
+			if [[ -z "$*" ]] ; then
+				InstanceList=$(show_instances)
+			fi
+			for Instance in $InstanceList
+			do
+				instance_status "$Instance"
+			done
+		} | sort -t : -k 4
+	} | column -t -s :
 }
 
 function validate ()
@@ -708,47 +728,43 @@ function name_by_workshopID () # $1: WorkshopID
 	echo "$Result"
 }
 
-function workshop_list_body () # $1: WorkshopListFile
+function workshop_list_ids ()
 {
-	while read WorkshopID
-	do
-		local Cache="$CacheDir/$WorkshopID"
-		local Downl="$DownloadDir/$WorkshopID"
-		local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
-		local WsName=$(name_by_workshopID "$WorkshopID")
-		if [[ -n "$WsName" ]]; then
-			local WsSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
-		else
-			local WsSize="-"; WsName="-"
-		fi
-		echo "$WorkshopID $WsName $WsSize $Url"
-	done < "$1"
-}
-
-function workshop_list_full () # $1: WorkshoplistFile
-{
-	echo "WORKSHOP_ID NAME SIZE WORKSHOP_URL"
-	workshop_list_body "$1" | sort -k 2
-}
-
-function workshop_list () # $1: [--human-readable]
-{
-	# TODO: Multiple *.kfm/*u in folder
-	local WsList=$(mktemp)
+	local WsList=''
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
 		if multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems"; then
-			multini -g "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" >> "$WsList"
+			if [[ -n "$WsList" ]]; then
+				WsList+=$'\n'
+			fi
+			WsList+=$(multini -g "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems")
 		fi
 	done
-	sort -u "$WsList" -o "$WsList"
-	if [[ -n "$1" ]]; then
-		workshop_list_full "$WsList" | column -t
-	else
-		cat "$WsList"
-	fi
-	rm -f "$WsList"
+	echo "$WsList" | sort -V -u
+}
+
+function workshop_list ()
+{
+	# TODO: Multiple *.kfm/*u in folder
+	{
+		echo "WORKSHOP_ID NAME SIZE WORKSHOP_URL"
+		{
+			for WorkshopID in $(workshop_list_ids)
+			do
+				local Cache="$CacheDir/$WorkshopID"
+				local Downl="$DownloadDir/$WorkshopID"
+				local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
+				local WsName=$(name_by_workshopID "$WorkshopID")
+				if [[ -n "$WsName" ]]; then
+					local WsSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
+				else
+					local WsSize="-"; WsName="-"
+				fi
+				echo "$WorkshopID $WsName $WsSize $Url"
+			done
+		} | sort -k 2
+	} | column -t
 }
 
 function any_to_workshopID () # $1: WorkshopID/URL
@@ -806,7 +822,7 @@ $Downl"
 
 function workshop_sync ()
 {
-	workshop_add $(workshop_list)
+	workshop_add $(workshop_list_ids)
 	
 	# TODO: Make it faster
 	for Instance in $(show_instances)
@@ -943,40 +959,39 @@ function steamID64_to_steamID3 () # $1: ID4
     echo "$ID3"
 }
 
-function ban_list_ext () # $1: BanlistFile
+function ban_list_id3 ()
 {
-	local Num=1
-	echo "NUM STEAM_ID3 STEAM_ID64 URL_CONST URL_EFFECTIVE"
-	while read ID3
-	do
-		local ID64=$(steamID3_to_steamID64 "$ID3")
-		local UrlConst="https://steamcommunity.com/profiles/$ID64"
-		local UrlEffective=$(curl "$UrlConst" -s -L -I -o /dev/null -w '%{url_effective}')
-		if [[ "$UrlConst" == "$UrlEffective" ]]; then
-			UrlEffective="-"
-		fi
-		echo "$Num $ID3 $ID64 $UrlConst $UrlEffective"
-		((Num++))
-	done < "$1"
-}
-
-function ban_list () # $1: [--human-readable]
-{
-	local BanList=$(mktemp)
+	local BanList=''
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
 		if multini -gq "$Config" "Engine.AccessControl" "BannedIDs"; then
-			multini -g "$Config" "Engine.AccessControl" "BannedIDs" | sed -r 's/.+A=([0-9]+),.+/\1/' >> "$BanList"
+			if [[ -n "$BanList" ]]; then
+				BanList+=$'\n'
+			fi
+			BanList+=$(multini -g "$Config" "Engine.AccessControl" "BannedIDs" | sed -r 's/.+A=([0-9]+),.+/\1/')
 		fi
 	done
-	sort -u "$BanList" -o "$BanList"
-	if [[ -n "$1" ]]; then
-		ban_list_ext "$BanList" | column -t
-	else
-		cat "$BanList"
-	fi
-	rm -f "$BanList"
+	echo "$BanList" | sort -V -u
+}
+
+function ban_list () # $1: [--human-readable]
+{
+	{
+		local Num=1
+		echo "NUM STEAM_ID3 STEAM_ID64 URL_CONST URL_EFFECTIVE"
+		for ID3 in $(ban_list_id3)
+		do
+			local ID64=$(steamID3_to_steamID64 "$ID3")
+			local UrlConst="https://steamcommunity.com/profiles/$ID64"
+			local UrlEffective=$(curl "$UrlConst" -s -L -I -o /dev/null -w '%{url_effective}')
+			if [[ "$UrlConst" == "$UrlEffective" ]]; then
+				UrlEffective="-"
+			fi
+			echo "$Num $ID3 $ID64 $UrlConst $UrlEffective"
+			((Num++))
+		done
+	} | column -t
 }
 
 function ban_ID3 () # $1: ID3
@@ -1011,11 +1026,20 @@ function unban_ID3 () # $1: ID3
 		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
 		local Service=$(service_name "$Instance")
 		if systemctl -q is-active $Service ; then
-			echo "Instance $Instance is running - skip."
-			# TODO: delete ban with webadmin/curl
-			# POST Body example:
-			# banid=plainid%3A8&action=delete
-			# WTF is plainID?!
+			local PlainID=0
+			while read Line
+			do
+				if echo "$Line" | grep -qF "A=$ID3,"; then
+					echo "Remove ban $ID3 from $Instance"
+					admin_curl "$Instance" "ServerAdmin/policy/bans"    \
+						--request POST                                  \
+						--data action="delete"                          \
+						--data banid="plainid:$PlainID"
+					break
+				else
+					((PlainID++))
+				fi
+			done < <(multini -g "$Config" 'Engine.AccessControl' 'BannedIDs')
 		else
 			if multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
 				echo "Remove ban $ID3 from $Instance"
@@ -1069,7 +1093,7 @@ function ban_del () # $*: ban list
 
 function ban_sync ()
 {
-	ban_list | \
+	ban_list_id3 | \
 	while read ID3
 	do
 		ban_ID3 "$ID3"
@@ -1214,13 +1238,13 @@ case $1 in
 	 -rs|--restart         ) if [[ "$EUID" -eq 0 ]]; then shift; restart_instance $*; else run_as_root $*; fi ;;
 	 -en|--enable          ) if [[ "$EUID" -eq 0 ]]; then shift; enable_instance  $*; else run_as_root $*; fi ;;
 	 -di|--disable         ) if [[ "$EUID" -eq 0 ]]; then shift; disable_instance $*; else run_as_root $*; fi ;;
-	 -wl|--workshop-list   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_list "-h" ; else run_as_root $*; fi ;;
+	 -wl|--workshop-list   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_list      ; else run_as_root $*; fi ;;
 	 -wa|--workshop-add    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_add     $*; else run_as_root $*; fi ;;
 	 -wd|--workshop-del    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_del     $*; else run_as_root $*; fi ;;
 	 -ws|--workshop-sync   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_sync      ; else run_as_root $*; fi ;;
 	-mrs|--map-rotate-save ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_save  $*; else run_as_root $*; fi ;;
 	-mrl|--map-rotate-load ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_load  $*; else run_as_root $*; fi ;;
-	 -bl|--ban-list        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_list "-h"      ; else run_as_root $*; fi ;;
+	 -bl|--ban-list        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_list           ; else run_as_root $*; fi ;;
 	 -bs|--ban-sync        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_sync           ; else run_as_root $*; fi ;;
 	 -ba|--ban-add         ) if [[ "$EUID" -eq 0 ]]; then shift; ban_add          $*; else run_as_root $*; fi ;;
 	 -bd|--ban-del         ) if [[ "$EUID" -eq 0 ]]; then shift; ban_del          $*; else run_as_root $*; fi ;;
