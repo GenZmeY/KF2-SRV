@@ -1,29 +1,36 @@
 LANG=en_US.UTF-8
 
-PortW=-webadminport=8080
-PortQ=-queryport=27015
-PortG=-port=7777
+PortWeb=8080
+PortQuery=27015
+PortGame=7777
 
-# First arg: map name
-#
+# Default Map
+Map=KF-Nuked
+
 # Difficulty:
 # Normal:         0
 # Hard:           1
 # Suicide:        2
 # Hell:           3
-#
+Difficulty=2
+
 # Game:
 # Survival:       KFGameContent.KFGameInfo_Survival
 # WeeklyOutbreak: KFGameContent.KFGameInfo_WeeklySurvival
 # Endless:        KFGameContent.KFGameInfo_Endless
 # Objective:      KFGameContent.KFGameInfo_Objective
 # Versus:         KFGameContent.KFGameInfo_VersusSurvival
-#
+Game=KFGameContent.KFGameInfo_Endless
+
 # GameLength:
 # 4  waves:       0
 # 7  waves:       1
 # 10 waves:       2
-Args=kf-bioticslab?Difficulty=0?Game=KFGameContent.KFGameInfo_Survival?GameLength=2
+Length=2
+
+# Additional parameters
+# If the parameter is used, it must necessarily begin with a character '?'
+Args=
 
 # Notes for yourself
-Description="Default description"
+Comment=
