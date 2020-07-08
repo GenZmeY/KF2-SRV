@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.5.0
+Version:   0.6.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -19,6 +19,7 @@ Source7:   main.conf.template
 Requires:  systemd >= 219
 Requires:  steamcmd
 Requires:  libxml2
+Requires:  dos2unix
 
 Provides:  %{name}
 
@@ -61,15 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root)                    %{_bindir}/%{name}
 %attr(644,root,root)                    %{_prefix}/lib/systemd/system/*
 
-%post
-#/bin/env bash
-#if [[ $1 -eq 1 ]]; then # First installation
-#	
-#fi
-#exit 0
-
 %preun
-#/bin/env bash
 if [[ $1 -eq 0 ]] ; then # Uninstall
 	%{_bindir}/%{name} --stop
 	%{_bindir}/%{name} --disable
@@ -77,6 +70,13 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Sat Jan 18 2020 GenZmeY <genzmey@gmail.com> - 0.6.0-1
+- versions;
+- instance conf tweaks;
+- extended map list;
+- clear cache on delete map;
+- removed useless messages.
+
 * Sun Jan 12 2020 GenZmeY <genzmey@gmail.com> - 0.5.0-1
 - ban admin;
 - map admin;

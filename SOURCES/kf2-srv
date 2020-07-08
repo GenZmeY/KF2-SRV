@@ -22,14 +22,17 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
+ScriptVersion="0.6.0"
 
-AppNum="232130"
+AppServerNum="232130"
+AppClientNum="232090"
 StrangeConstUID="17825793"
 InstallDir="/usr/games/kf2-srv"
 ActiveBranch="$InstallDir/activebranch.txt"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 DefaultConfigDir="$InstallDir/KFGame/Config"
-CustomMapsDir="$InstallDir/KFGame/Cache"
+DownloadMapsDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
+CacheMapsDir="$InstallDir/KFGame/Cache"
 InstanceConfigDir="/etc/kf2-srv/instances"
 InstanceConfigLnk="$DefaultConfigDir/instances"
 MainConfigTemplate="/etc/kf2-srv/main.conf.template"
@@ -46,7 +49,7 @@ ModeArray['KFGameContent.KFGameInfo_VersusSurvival']='Versus'
 function show_help ()
 {
 #	echo "TODO: English description"
-	echo "$ScriptName"
+	echo "$ScriptName v$ScriptVersion"
 	echo "Централизование управление серверами Killing Floor 2"
 	echo "Usage:"
 	echo "$ScriptName OPTIONS"
@@ -202,20 +205,24 @@ function new_instance () # $*: InstanceName[s]
 		fi
 
 		local InstanceDir="$InstanceConfigDir/$Instance"
-		install -d -g "$SteamUser" -o "$SteamUser" -m 755 "$InstanceDir"
-		install -d -g "$SteamUser" -o "$SteamUser" -m 755 "$InstanceDir/LinuxServer"
+		
+		local DirMode="-d -g $SteamUser -o $SteamUser -m 775"
+		local FileMode="  -g $SteamUser -o $SteamUser -m 664"
+		
+		install $DirMode "$InstanceDir"
+		install $DirMode "$InstanceDir/LinuxServer"
 
-		cp -a "$MainConfigTemplate"                                         "$InstanceDir/main.conf"
-		cp -a "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
-		cp -a "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
-		cp -a "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir"
-		cp -a "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir"
-		cp -a "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir"
-		cp -a "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir"
-		cp -a "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer"
-		cp -a "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer"
-		cp -a "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
-		cp -a "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
+		install $FileMode "$MainConfigTemplate"                                         "$InstanceDir/main.conf"
+		install $FileMode "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
 		
 		((MaxGamePort++)); ((MaxQueryPort++)); ((MaxWebAdminPort++))
 		
@@ -327,32 +334,52 @@ function validate ()
 		local BetaArg="-beta $BranchName"
 	fi
 	stop_instance
-	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit
+	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
 	echo "$BranchName" > "$ActiveBranch"
 	start_instance
 }
 
-function link_default_instance ()
+function make_default_instance ()
 {
-	local Instance="default"
-	if instance_exists "$Instance"; then
-		echo "Instance $Instance already exists - skip"
-	else
-		local InstanceDir="$InstanceConfigDir/$Instance"
-		install -d -g "$SteamUser" -o "$SteamUser" -m 755 "$InstanceDir"
-		install -d -g "$SteamUser" -o "$SteamUser" -m 755 "$InstanceDir/LinuxServer"
-		cp -a "$MainConfigTemplate"                                         "$InstanceDir/main.conf"
-		ln -s "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir/KFAI.ini"
-		ln -s "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir/KFWeb.ini"
-		ln -s "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir/LinuxServer-KFEngine.ini"
-		ln -s "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir/LinuxServer-KFGame.ini"
-		ln -s "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir/LinuxServer-KFInput.ini"
-		ln -s "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir/LinuxServer-KFSystemSettings.ini"
-		ln -s "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer/LinuxServerEngine.ini"
-		ln -s "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer/LinuxServerGame.ini"
-		ln -s "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer/LinuxServerInput.ini"
-		ln -s "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer/LinuxServerSystemSettings.ini"
-	fi
+	local InstanceDir="$InstanceConfigDir/default"
+
+	chmod 664                                                     \
+	"$DefaultConfigDir/KFAI.ini"                                  \
+	"$DefaultConfigDir/KFWeb.ini"                                 \
+	"$DefaultConfigDir/LinuxServer-KFEngine.ini"                  \
+	"$DefaultConfigDir/LinuxServer-KFGame.ini"                    \
+	"$DefaultConfigDir/LinuxServer-KFInput.ini"                   \
+	"$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          \
+	"$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         \
+	"$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           \
+	"$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          \
+	"$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini"
+	
+	dos2unix                                                      \
+	"$DefaultConfigDir/KFAI.ini"                                  \
+	"$DefaultConfigDir/KFWeb.ini"                                 \
+	"$DefaultConfigDir/LinuxServer-KFEngine.ini"                  \
+	"$DefaultConfigDir/LinuxServer-KFGame.ini"                    \
+	"$DefaultConfigDir/LinuxServer-KFInput.ini"                   \
+	"$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          \
+	"$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         \
+	"$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           \
+	"$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          \
+	"$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini"
+	
+	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir"
+	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir/LinuxServer"
+	install    -g "$SteamUser" -o "$SteamUser" -m 664 "$MainConfigTemplate" "$InstanceDir/main.conf"
+	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
+	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFEngine.ini"                      "$InstanceDir/LinuxServer-KFEngine.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFGame.ini"                        "$InstanceDir/LinuxServer-KFGame.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFInput.ini"                       "$InstanceDir/LinuxServer-KFInput.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"              "$InstanceDir/LinuxServer-KFSystemSettings.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"             "$InstanceDir/LinuxServer/LinuxServerEngine.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"               "$InstanceDir/LinuxServer/LinuxServerGame.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"              "$InstanceDir/LinuxServer/LinuxServerInput.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini"     "$InstanceDir/LinuxServer/LinuxServerSystemSettings.ini"
 }
 
 function fix_steamclient_so ()
@@ -372,7 +399,7 @@ function update_kf2 ()
 	fi
 	if ! server_exists; then # First install
 		echo "$BranchName" > "$ActiveBranch"
-		if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg validate +exit; then
+		if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
 			echo "Errors during installation - exit"
 			exit 1
 		fi
@@ -394,17 +421,16 @@ function update_kf2 ()
 			sleep 2
 		done
 		killall -KILL KFGameSteamServer.bin.x86_64
-		#$InstallDir/Binaries/Win64/steamapps/workshop/content/232090/1078911795/BrewedPC/Maps/KF-HorzineArena-B2-v6.kfm
-		#$InstallDir/KFGame/Cache/1078911795/0/BrewedPC/Maps/KF-HorzineArena-B2-v6.kfm
-		install -d -g "$SteamUser" -o "$SteamUser" -m 755 "$CustomMapsDir"
+		set_ini_permissions "$DefaultConfigDir"
+		install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$CacheMapsDir"
 		fix_steamclient_so
 		ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
-		link_default_instance
+		make_default_instance
 		echo "KF2 succesfully installed"
 	elif updates_aviable; then # Update
 		if [[ "$BranchName" == $(cat "$ActiveBranch") ]]; then
 			stop_instance
-			steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppNum $BetaArg +exit
+			steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
 			start_instance
 		else
 			validate
@@ -548,30 +574,44 @@ function run ()
 	fi
 }
 
-function map_list_ext () # $1: MaplistFile
+function map_list_body () # $1: MaplistFile
 {
-	local Num=1
-	echo "NUM WORKSHOP_ID WORKSHOP_URL"
 	while read WorkshopID
 	do
+		local Cache="$CacheMapsDir/$WorkshopID"
+		local Downl="$DownloadMapsDir/$WorkshopID"
 		local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
-		echo "$Num $WorkshopID $Url"
-		((Num++))
+		if [[ -d "$Cache" ]]; then
+			local MapName=$(find "$Cache" -type f -name '*.kfm' -printf '%f\n' | head -n 1)
+		else
+			local MapName=""
+		fi
+		if [[ -n "$MapName" ]]; then
+			local MapSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
+		else
+			local MapSize="-"; MapName="-"
+		fi
+		echo "$MapName $MapSize $WorkshopID $Url"
 	done < "$1"
+}
+
+function map_list_full () # $1: MaplistFile
+{
+	echo "NAME SIZE WORKSHOP_ID WORKSHOP_URL"
+	map_list_body "$1" | sort -k 1
 }
 
 function map_list () # $1: [--human-readable]
 {
-	# TODO: Show map names (sizes?)
 	local MapList=$(mktemp)
 	for Instance in $(show_instances)
 	do
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-		grep -P 'ServerSubscribedWorkshopItems=' "$Config" | sed -r 's/.+=([0-9]+)$/\1/' >> "$MapList"
+		grep -F 'ServerSubscribedWorkshopItems=' "$Config" | sed -r 's/^.+=([0-9]+)$/\1/' >> "$MapList"
 	done
 	sort -u "$MapList" -o "$MapList"
 	if [[ -n "$1" ]]; then
-		map_list_ext "$MapList" | column -t
+		map_list_full "$MapList" | column -t
 	else
 		cat "$MapList"
 	fi
@@ -616,10 +656,17 @@ function map_add () # $*: WorkshopID[s]
 
 function map_del () # $*: WorkshopID[s]
 {
-	# TODO: Remove lines from LinuxServer-KFGame.ini, clear cache
+	# TODO: Remove lines from LinuxServer-KFGame.ini
+	# I need "crudini" with duplicate keys support >_<
 	for Map in $*
 	do
 		local WorkshopID=$(any_to_workshopID "$Map")
+		local Cache="$CacheMapsDir/$WorkshopID"
+		local Downl="$DownloadMapsDir/$WorkshopID"
+		echo -e "Clear cache:
+$Cache
+$Downl"
+		rm -rf "$Cache" "$Downl"
 		for Instance in $(show_instances)
 		do
 			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
@@ -634,25 +681,19 @@ function map_del () # $*: WorkshopID[s]
 
 function map_sync ()
 {
-	#local InstanceList="$*"
-	#if [[ -z "$InstanceList" ]] ; then
-	#	InstanceList=$(show_instances)
-	#fi
 	map_add $(map_list)
 	
 	for Instance in $(show_instances)
 	do
 		if instance_exists "$Instance"; then
 			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			for MapFile in $(find "$CustomMapsDir" -type f -name '*.kfm' -printf "%f\n")
+			for MapFile in $(find "$CacheMapsDir" -type f -name '*.kfm' -printf "%f\n")
 			do
 				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||g')
 				if [[ ! -f "$Config" ]]; then
 					echo "$Config does not exist!"
-				elif grep -qP "MapName=$MapName[ ]*$" "$Config"; then
-					echo "$MapName is already in $Config."
-				else
-					echo "Adding $MapName to $Config."
+				elif ! grep -qP "MapName=$MapName[ ]*$" "$Config"; then
+					echo "Adding $MapName to $Instance."
 					echo -e "
 [$MapName KFMapSummary]
 MapName=$MapName
