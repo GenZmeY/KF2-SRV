@@ -1,0 +1,60 @@
+- selinux
+- sudo for steamuser
+- kick by level
+- split the script into separate files
+- man pages
+- english help
+- ban history
+- temporary ban
+- understand what causes a "cpu hurricane" at startup
+- generate unique password for server bot on install
+- parallel actions
+- bash completion
+
+###################
+
+Split scheme:
+game
+	update
+	validate
+	fix-permissions
+	run
+	help
+
+instance
+	list
+	new
+	delete
+	enable
+	disable
+	start
+	stop
+	restart
+	chat
+	help
+
+ban
+	list
+	add
+	delete
+	sync
+	help
+
+workshop
+	list
+	add
+	delete
+	sync
+	help
+
+password
+	game
+	admin
+	help
+
+maprotate
+	save
+	load
+	help
+	
+help h -h --help
