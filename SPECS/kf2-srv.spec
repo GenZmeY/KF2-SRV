@@ -1,5 +1,5 @@
 Name:      kf2-srv
-Version:   0.1.0
+Version:   0.2.0
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -75,5 +75,8 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Mon Sep 16 2019 GenZmeY <genzmey@gmail.com> - 0.2.0-1
+- Add --map-sync implementation to kf2-srv.
+
 * Sat Sep 14 2019 GenZmeY <genzmey@gmail.com> - 0.1.0-1
 - First version of spec.
