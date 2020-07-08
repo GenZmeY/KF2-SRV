@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:      kf2-srv
-Version:   0.9.0
+Version:   0.9.1
 Release:   1%{dist}
 Summary:   Killing Floor 2 server
 Group:     Amusements/Games
@@ -51,6 +51,7 @@ install -m 755 -d %{buildroot}/%{_prefix}/lib/systemd/system
 install -m 755 -d %{buildroot}/%{_prefix}/lib/firewalld/services
 install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/instances
 install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/instances-beta
+install -m 755 -d %{buildroot}/%{_sysconfdir}/%{name}/mapcycles
 install -m 644 -d %{buildroot}/%{_prefix}/games/%{name}
 install -m 644 -d %{buildroot}/%{_prefix}/games/%{name}-beta
 
@@ -75,6 +76,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
 %attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
+%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
 %attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
 %attr(640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -93,6 +95,10 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %changelog
+* Sun May 31 2020 GenZmeY <genzmey@gmail.com> - 0.9.1-1
+- fix realtime -mrl with spaces;
+- mapcycles directory.
+
 * Wed May 27 2020 GenZmeY <genzmey@gmail.com> - 0.9.0-1
 - new main.conf format;
 - multiple WebAdmin and http auth by default;
