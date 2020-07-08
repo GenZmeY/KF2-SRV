@@ -2,7 +2,7 @@
 Description=Check and Update killing Floor 2 job
 
 [Timer]
-OnCalendar=*-*-* 4:00:00
+OnCalendar=Wed, 04:00
 Unit=kf2-srv-update.service
 
 [Install]
