@@ -29,7 +29,7 @@ source /etc/kf2-srv/kf2-srv.conf
 
 ScriptFullname=$(readlink -e "$0")
 ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-readonly ScriptVersion="0.11.0"
+readonly ScriptVersion="0.11.1"
 
 # Constants. Don't change.
 readonly AppServerNum="232130"
