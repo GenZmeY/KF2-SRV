@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.11.0
+Version:    0.11.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -118,6 +118,9 @@ systemctl daemon-reload
 systemctl restart rsyslog.service
 
 %changelog
+* Thu Jul 9 2020 GenZmeY <genzmey@gmail.com> - 0.11.1-1
+- fix syntax error in firewalld service.
+
 * Wed Jul 8 2020 GenZmeY <genzmey@gmail.com> - 0.11.0-1
 - logging (rsyslog + logrotate).
 
