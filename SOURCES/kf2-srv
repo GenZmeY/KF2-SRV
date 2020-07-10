@@ -253,7 +253,7 @@ function new_instance () # $*: InstanceName[s]
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "bHttpAuth"           "True"
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "Filename"            "$Instance-chat"
-		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "True"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
 		
 		# LOGGING?: LinuxServer-KFGame.ini bLog* 
 
@@ -530,7 +530,7 @@ function first_install ()
 	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bHttpAuth"           "True"
 	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bChatLog"            "True"
 	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "Filename"            "default-chat"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
 	
 	echo "Wait while WebAdmin up"
 	sudo -u "$SteamUser" $AppBin &> /dev/null &

@@ -11,7 +11,6 @@
 - generate unique password for server bot on install
 - parallel actions
 - bash completion
-- disable timestamp in chat logging (too many files)
 
 ###################
 
