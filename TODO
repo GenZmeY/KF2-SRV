@@ -4,6 +4,7 @@
 - split the script into separate files
 - man pages
 - english help
+- check ban EGS players (mb bugs)
 - ban history
 - temporary ban
 - understand what causes a "cpu hurricane" at startup
