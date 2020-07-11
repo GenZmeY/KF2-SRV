@@ -1,6 +1,7 @@
 /var/log/kf2-srv/*.log
 /var/log/kf2-srv-beta/*.log
 {
+	su root steam
 	daily
 	missingok
 	rotate 7
