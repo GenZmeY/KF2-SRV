@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.11.1
+Version:    0.12.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -85,14 +85,14 @@ install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%attr(2775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}
-%attr(2775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}-beta
-%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
-%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
-%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
-%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
-%attr(2770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
-%attr(2770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
+%attr(0775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}
+%attr(0775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}-beta
+%attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
+%attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
+%attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
+%attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
+%attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
+%attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -117,26 +117,13 @@ fi
 #if [[ $1 == 1 ]]; then # Install
 systemctl daemon-reload
 systemctl try-restart rsyslog.service
-
-# 660 permissions for new log files
-setfacl -dm 'u::rw,g::rw'             \
-%{_localstatedir}/log/%{name}         \
-%{_localstatedir}/log/%{name}-beta
-
-# 664 permissions for new ini files
-# 775 permissions for new directories
-setfacl -dm 'u::rwX,g::rwX,other::rX' \
-%{_sysconfdir}/%{name}
 #fi
 
 %changelog
-* Sun Jul 11 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
+* Sun Jul 12 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
 - chat logs without timestamp;
 - update rsyslog config - now logs will be create with steam group and 640 permissions;
-- update logrotate config (fixed that logrotate does nothing);
-- SGID bit for game directories;
-- ACL 660 for new log files (server creates 600 by default);
-- ACL 664 for new ini files (server creates 600 by default).
+- update logrotate config (fixed that logrotate does nothing).
 
 * Thu Jul 9 2020 GenZmeY <genzmey@gmail.com> - 0.11.1-1
 - fix syntax error in firewalld service.
