@@ -85,23 +85,23 @@ install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%attr(775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}
-%attr(775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}-beta
-%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
-%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
-%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
-%attr(775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
-%attr(775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
-%attr(775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
-%attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
-%attr(644,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
-%attr(644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
-%attr(755,root,root)                            %{_bindir}/%{name}
-%attr(755,root,root)                            %{_bindir}/%{name}-beta
-%attr(644,root,root)                            %{_prefix}/lib/systemd/system/*
-%attr(644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
-%attr(644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
-%attr(644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
+%attr(2775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}
+%attr(2775,root,%{steamuser}) %dir               %{_prefix}/games/%{name}-beta
+%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}
+%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
+%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
+%attr(2775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
+%attr(2770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
+%attr(2770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
+%attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
+%attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
+%attr(0755,root,root)                            %{_bindir}/%{name}
+%attr(0755,root,root)                            %{_bindir}/%{name}-beta
+%attr(0644,root,root)                            %{_prefix}/lib/systemd/system/*
+%attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
+%attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
+%attr(0644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
@@ -114,10 +114,30 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 fi
 
 %post
+#if [[ $1 == 1 ]]; then # Install
 systemctl daemon-reload
-systemctl restart rsyslog.service
+systemctl try-restart rsyslog.service
+
+# 660 permissions for new log files
+setfacl -dm 'u::rw,g::rw'             \
+%{_localstatedir}/log/%{name}         \
+%{_localstatedir}/log/%{name}-beta
+
+# 664 permissions for new ini files
+# 775 permissions for new directories
+setfacl -dm 'u::rwX,g::rwX,other::rX' \
+%{_sysconfdir}/%{name}
+#fi
 
 %changelog
+* Sun Jul 11 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
+- chat logs without timestamp;
+- update rsyslog config - now logs will be create with steam group and 640 permissions;
+- update logrotate config (fixed that logrotate does nothing);
+- SGID bit for game directories;
+- ACL 660 for new log files (server creates 600 by default);
+- ACL 664 for new ini files (server creates 600 by default).
+
 * Thu Jul 9 2020 GenZmeY <genzmey@gmail.com> - 0.11.1-1
 - fix syntax error in firewalld service.
 
