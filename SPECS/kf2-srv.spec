@@ -22,6 +22,8 @@ Source11:   %{name}.conf
 Source12:   COPYING
 Source13:   rsyslog-%{name}.conf
 Source14:   logrotate-%{name}
+Source15:   bot.conf
+Source16:   %{name}-force-attr.service
 
 Requires:   systemd >= 219
 Requires:   steamcmd
@@ -38,6 +40,7 @@ Requires:   gawk
 Requires:   multini >= 0.2.3
 Requires:   rsyslog >= 8.25.0
 Requires:   logrotate
+Requires:   inotify-tools
 
 Provides:   %{name}
 
@@ -80,6 +83,8 @@ install -m 644 %{SOURCE11} %{buildroot}/%{_sysconfdir}/%{name}
 install -m 644 %{SOURCE12} %{buildroot}/%{_datadir}/licenses/%{name}
 install -m 644 %{SOURCE13} %{buildroot}/%{_sysconfdir}/rsyslog.d/%{name}.conf
 install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
+install -m 644 %{SOURCE15} %{buildroot}/%{_sysconfdir}/%{name}
+install -m 644 %{SOURCE16} %{buildroot}/%{_prefix}/lib/systemd/system
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -95,6 +100,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%attr(0640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/bot.conf
 %attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
 %attr(0755,root,root)                            %{_bindir}/%{name}
 %attr(0755,root,root)                            %{_bindir}/%{name}-beta
@@ -123,7 +129,8 @@ systemctl try-restart rsyslog.service
 * Sun Jul 12 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
 - chat logs without timestamp;
 - update rsyslog config - now logs will be create with steam group and 640 permissions;
-- update logrotate config (fixed that logrotate does nothing).
+- update logrotate config (fixed that logrotate does nothing);
+- feat: force attr for log/ini files.
 
 * Thu Jul 9 2020 GenZmeY <genzmey@gmail.com> - 0.11.1-1
 - fix syntax error in firewalld service.
