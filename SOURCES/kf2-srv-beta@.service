@@ -1,5 +1,7 @@
 [Unit]
 Description=Killing Floor 2 Beta Server Daemon - %i
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=steam

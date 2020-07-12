@@ -1,5 +1,7 @@
 [Unit]
 Description=Check and Update Killing Floor 2 server
+After=network-online.target
+Requires=network-online.target
 
 [Service]
 Type=oneshot
