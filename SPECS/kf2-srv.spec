@@ -23,7 +23,8 @@ Source12:   COPYING
 Source13:   rsyslog-%{name}.conf
 Source14:   logrotate-%{name}
 Source15:   bot.conf
-Source16:   %{name}-force-attr.service
+Source16:   %{name}-force-attr
+Source17:   %{name}-force-attr.service
 
 Requires:   systemd >= 219
 Requires:   steamcmd
@@ -55,6 +56,7 @@ Command line tool for managing a set of Killing Floor 2 servers.
 rm -rf $RPM_BUILD_ROOT
 
 install -d %{buildroot}/%{_bindir}
+install -d %{buildroot}/%{_sbindir}
 install -d %{buildroot}/%{_prefix}/lib/systemd/system
 install -d %{buildroot}/%{_prefix}/lib/firewalld/services
 install -d %{buildroot}/%{_sysconfdir}/%{name}/instances
@@ -84,7 +86,8 @@ install -m 644 %{SOURCE12} %{buildroot}/%{_datadir}/licenses/%{name}
 install -m 644 %{SOURCE13} %{buildroot}/%{_sysconfdir}/rsyslog.d/%{name}.conf
 install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
 install -m 644 %{SOURCE15} %{buildroot}/%{_sysconfdir}/%{name}
-install -m 644 %{SOURCE16} %{buildroot}/%{_prefix}/lib/systemd/system
+install -m 755 %{SOURCE16} %{buildroot}/%{_sbindir}
+install -m 644 %{SOURCE17} %{buildroot}/%{_prefix}/lib/systemd/system
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -104,6 +107,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
 %attr(0755,root,root)                            %{_bindir}/%{name}
 %attr(0755,root,root)                            %{_bindir}/%{name}-beta
+%attr(0755,root,root)                            %{_sbindir}/%{name}-force-attr
 %attr(0644,root,root)                            %{_prefix}/lib/systemd/system/*
 %attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 %attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
@@ -126,10 +130,11 @@ systemctl try-restart rsyslog.service
 #fi
 
 %changelog
-* Sun Jul 12 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
+* Mon Jul 13 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
 - chat logs without timestamp;
 - update rsyslog config - now logs will be create with steam group and 640 permissions;
 - update logrotate config (fixed that logrotate does nothing);
+- bot password in separate file without read permission to others;
 - feat: force attr for log/ini files.
 
 * Thu Jul 9 2020 GenZmeY <genzmey@gmail.com> - 0.11.1-1

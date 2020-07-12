@@ -28,9 +28,9 @@ source /etc/steamcmd/steamcmd.conf
 source /etc/kf2-srv/kf2-srv.conf
 source /etc/kf2-srv/bot.conf
 
-ScriptFullname=$(readlink -e "$0")
-ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-readonly ScriptVersion="0.12.0"
+readonly ScriptFullname=$(readlink -e "$0")
+readonly ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
+readonly ScriptVersion=$(rpm -qi "$ScriptName" | grep 'Version' | sed -r 's|.+: +||g') # mb problems in other langs ('Version')
 
 # Constants. Don't change.
 readonly AppServerNum="232130"
