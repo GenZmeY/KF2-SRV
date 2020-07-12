@@ -1,0 +1,19 @@
+[Unit]
+Description=kf2-srv force attr service
+
+[Service]
+Type=simple
+StandardOutput=null
+StandardError=null
+EnvironmentFile=/etc/kf2-srv/kf2-srv.conf
+ExecStart=/bin/bash -c 'declare -a DiffNames WaveNames; declare -A ModeNames MutNames; source /etc/kf2-srv/kf2-srv.conf; /usr/bin/inotifywait -qmr -e create -e moved_to --format %w%f /var/log/kf2-srv /var/log/kf2-srv-beta /etc/kf2-srv/instances /etc/kf2-srv/instances-beta | while read File; do if echo "${File}" | grep -Piq "\.log$"; then chmod "${ForceLogPermissions}" "${File}"; chown :"${ForceLogGroup}" "${File}"; elif echo "${File}" | grep -Piq "\.ini$"; then chmod "${ForceIniPermissions}" "${File}"; chown :"${ForceIniGroup}" "${File}"; fi; done'
+Restart=always
+
+NoNewPrivileges=yes
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=true
+
+[Install]
+WantedBy=multi-user.target

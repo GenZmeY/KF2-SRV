@@ -1,5 +1,6 @@
 [Unit]
 Description=Killing Floor 2 Server Daemon - %i
+After=kf2-srv-force-attr.service
 After=network-online.target
 Wants=network-online.target
 

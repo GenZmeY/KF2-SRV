@@ -11,8 +11,6 @@
 - generate unique password for server bot on install
 - parallel actions
 - bash completion
-- fix permissions for log/ini by inotify. Example:
-	inotifywait -qm -e 'create' -e 'moved_to' --format %w%f /home/genzmey/test/ /home/genzmey/test2/
 
 ###################
 
