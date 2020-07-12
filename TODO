@@ -11,6 +11,7 @@
 - generate unique password for server bot on install
 - parallel actions
 - bash completion
+- rename main.conf to instance.conf
 
 ###################
 
