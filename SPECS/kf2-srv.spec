@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.12.0
+Version:    0.12.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -14,7 +14,7 @@ Source3:    %{name}.xml
 Source4:    %{name}@.service
 Source5:    %{name}-update.service
 Source6:    %{name}-update.timer
-Source7:    main.conf.template
+Source7:    instance.conf.template
 Source8:    %{name}-beta@.service
 Source9:    %{name}-beta-update.service
 Source10:   %{name}-beta-update.timer
@@ -101,7 +101,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
-%attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/main.conf.template
+%attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/instance.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(0640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/bot.conf
 %attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
@@ -130,6 +130,9 @@ systemctl try-restart rsyslog.service
 #fi
 
 %changelog
+* Mon Jul 13 2020 GenZmeY <genzmey@gmail.com> - 0.12.1-1
+- rename main.conf to instance.conf.
+ 
 * Mon Jul 13 2020 GenZmeY <genzmey@gmail.com> - 0.12.0-1
 - chat logs without timestamp;
 - update rsyslog config - now logs will be create with steam group and 640 permissions;

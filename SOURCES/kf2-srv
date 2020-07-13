@@ -204,7 +204,7 @@ function new_instance () # $*: InstanceName[s]
 	local MaxWebAdminPort='8080'
 	for Instance in $(show_instances)
 	do
-		local Config="$InstanceConfigDir/$Instance/main.conf"
+		local Config="$InstanceConfigDir/$Instance/instance.conf"
 		local GamePort=$(multini --get "$Config" '' 'PortGame')
 		local WebAdminPort=$(multini --get "$Config" '' 'PortWeb')
 		local QueryPort=$(multini --get "$Config" '' 'PortQuery')
@@ -228,7 +228,7 @@ function new_instance () # $*: InstanceName[s]
 		install $DirMode "$InstanceDir"
 		install $DirMode "$InstanceDir/LinuxServer"
 
-		install $FileMode "$MainConfigTemplate"                                         "$InstanceDir/main.conf"
+		install $FileMode "$InstanceConfigTemplate"                                         "$InstanceDir/instance.conf"
 		install $FileMode "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
 		install $FileMode "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
 		install $FileMode "$DefaultConfigDir/KFWebAdmin.ini"                            "$InstanceDir"
@@ -244,9 +244,9 @@ function new_instance () # $*: InstanceName[s]
 		
 		((MaxGamePort++)); ((MaxQueryPort++)); ((MaxWebAdminPort++))
 		
-		multini -s "$InstanceDir/main.conf" '' 'PortGame'  "$MaxGamePort"
-		multini -s "$InstanceDir/main.conf" '' 'PortQuery' "$MaxQueryPort"
-		multini -s "$InstanceDir/main.conf" '' 'PortWeb'   "$MaxWebAdminPort"
+		multini -s "$InstanceDir/instance.conf" '' 'PortGame'  "$MaxGamePort"
+		multini -s "$InstanceDir/instance.conf" '' 'PortQuery' "$MaxQueryPort"
+		multini -s "$InstanceDir/instance.conf" '' 'PortWeb'   "$MaxWebAdminPort"
 		
 		multini -s "$InstanceDir/KFWeb.ini"                "IpDrv.WebServer"   "bEnabled"            "true"
 		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "PurgeLogsDays"       "0"
@@ -304,16 +304,16 @@ function instance_status () # $1: InstanceName
 	else
 		local IsRuning="stopped"
 	fi
-	local Comment=$(        multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Comment")
-	local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortGame")
-	local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortWeb")
-	local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/main.conf" '' "PortQuery")
-	local GameType=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Game")
-	local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Length")
-	local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Difficulty")
-	local Map=$(            multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Map")
-	local Mutators=$(       multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Mutators")
-	local Args=$(           multini -g "$InstanceConfigDir/$Instance/main.conf" '' "Args")
+	local Comment=$(        multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Comment")
+	local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortGame")
+	local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortWeb")
+	local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortQuery")
+	local GameType=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Game")
+	local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Length")
+	local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Difficulty")
+	local Map=$(            multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Map")
+	local Mutators=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Mutators")
+	local Args=$(           multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Args")
 	
 	local DisplayGameType=''
 	local DisplayGameLength=''
@@ -398,7 +398,7 @@ function make_default_instance () # $1: Dir
 	
 	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir"
 	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir/LinuxServer"
-	install    -g "$SteamUser" -o "$SteamUser" -m 664 "$MainConfigTemplate" "$InstanceDir/main.conf"
+	install    -g "$SteamUser" -o "$SteamUser" -m 664 "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
 	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
 	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
 	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"
@@ -1130,14 +1130,13 @@ function admin_curl () # $1: Instance, $2: URL, $*: Request
 {
 	local Instance="$1"
 	local URL="$2"
-	local MainConf="$InstanceConfigDir/$Instance/main.conf"
-	local WebPort=$(multini --get "$MainConf" '' "PortWeb")
+	local InstanceConf="$InstanceConfigDir/$Instance/instance.conf"
+	local WebPort=$(multini --get "$InstanceConf" '' "PortWeb")
 	shift; shift
 	curl -s -o "/dev/null" -u "$ServerBotLogin:$ServerBotPassword" "localhost:$WebPort/$URL" $*
 }
 
 function password_game () # $1: Password (if empty, use: ''), $*: Instance[s]
-{
 	if echo "$1" | grep -qP '\s'; then
 		echo "Password should not contain spaces"
 		return 1
@@ -1242,7 +1241,7 @@ CacheDir="$InstallDir/KFGame/Cache"
 LogDir="$InstallDir/KFGame/Logs"
 InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
 InstanceConfigLnk="$DefaultConfigDir/instances"
-MainConfigTemplate="/etc/kf2-srv/main.conf.template"
+InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
 
 if [[ $# -eq 0 ]]; then show_help; exit 0; fi
 case $1 in

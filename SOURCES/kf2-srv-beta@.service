@@ -11,7 +11,7 @@ Type=simple
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=kf2-srv-beta/%i
-EnvironmentFile=/etc/kf2-srv/instances-beta/%i/main.conf
+EnvironmentFile=/etc/kf2-srv/instances-beta/%i/instance.conf
 ExecStart=/usr/games/kf2-srv-beta/Binaries/Win64/KFGameSteamServer.bin.x86_64 ${Map}?Difficulty=${Difficulty}?GameLength=${Length}?Game=${Game}?Mutator=${Mutators}?${Args} configsubdir=instances/%i -webadminport=${PortWeb} -queryport=${PortQuery} -port=${PortGame}
 Restart=always
 
