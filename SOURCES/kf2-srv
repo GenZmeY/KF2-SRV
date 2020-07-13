@@ -1137,6 +1137,7 @@ function admin_curl () # $1: Instance, $2: URL, $*: Request
 }
 
 function password_game () # $1: Password (if empty, use: ''), $*: Instance[s]
+{
 	if echo "$1" | grep -qP '\s'; then
 		echo "Password should not contain spaces"
 		return 1
