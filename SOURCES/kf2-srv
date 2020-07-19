@@ -467,7 +467,7 @@ function create_cache ()
 		if [[ -L "$DefaultDownloadDir" ]]; then
 			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
 		elif [[ -d "$DefaultDownloadDir" ]]; then
-			mv -rf "$DefaultDownloadDir" "$DownloadDir"
+			mv -f "$DefaultDownloadDir" "$DownloadDir"
 			ln -s "$DownloadDir" "$DefaultDownloadDir"
 		else
 			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
