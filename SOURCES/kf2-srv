@@ -222,13 +222,13 @@ function new_instance () # $*: InstanceName[s]
 
 		local InstanceDir="$InstanceConfigDir/$Instance"
 		
-		local DirMode="-d -g $SteamUser -o $SteamUser -m 775"
-		local FileMode="  -g $SteamUser -o $SteamUser -m 664"
+		local DirMode="-d -g $SteamUser -o $ForceIniGroup -m 775"
+		local FileMode="  -g $SteamUser -o $ForceIniGroup -m $ForceIniPermissions"
 		
 		install $DirMode "$InstanceDir"
 		install $DirMode "$InstanceDir/LinuxServer"
 
-		install $FileMode "$InstanceConfigTemplate"                                         "$InstanceDir/instance.conf"
+		install $FileMode "$InstanceConfigTemplate"                                     "$InstanceDir/instance.conf"
 		install $FileMode "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
 		install $FileMode "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
 		install $FileMode "$DefaultConfigDir/KFWebAdmin.ini"                            "$InstanceDir"
@@ -255,8 +255,6 @@ function new_instance () # $*: InstanceName[s]
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "bHttpAuth"           "True"
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "Filename"            "$Instance-chat"
 		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
-		
-		# LOGGING?: LinuxServer-KFGame.ini bLog* 
 
 		echo "Instance $Instance created. See /etc/$ScriptName/instances$BetaPostfix/$Instance for edit configuration"
 	done
@@ -396,9 +394,9 @@ function make_default_instance () # $1: Dir
 {
 	local InstanceDir="$InstanceConfigDir/default"
 	
-	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir"
-	install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstanceDir/LinuxServer"
-	install    -g "$SteamUser" -o "$SteamUser" -m 664 "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
+	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir"
+	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir/LinuxServer"
+	install    -g "$SteamUser" -o "$ForceIniGroup" -m $ForceIniPermissions  "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
 	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
 	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
 	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"
@@ -433,7 +431,7 @@ function fix_ini_permissions () # $1: Dir
 {
 	find "$1" \( -type l -o -type f \) -name '*.ini' | \
 	xargs --max-procs=$(nproc) -I {}  \
-	sh -c "chmod 664 {}; chown $SteamUser:$SteamUser {}"
+	sh -c "chmod $ForceIniPermissions {}; chown $SteamUser:$ForceIniGroup {}"
 }
 
 function fix_ini_eol () # $1: Dir
@@ -453,34 +451,36 @@ function fix_steamclient_so ()
 	ln -s "/usr/share/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
 }
 
-function create_map_dirs () 
+function create_cache () 
 {
-	# space saving
-	local InstallDirOrig="/usr/games/kf2-srv"
-	local InstallDirBeta="/usr/games/kf2-srv-beta"
-	local DownloadDirOrig="$InstallDirOrig/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-	local CacheDirOrig="$InstallDirOrig/KFGame/Cache"
-	local DownloadDirBeta="$InstallDirBeta/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-	local CacheDirBeta="$InstallDirBeta/KFGame/Cache"
+	if [[ -d "$DownloadDir" ]]; then
+		if ! [[ -L "$DefaultDownloadDir" ]]; then
+			if [[ -d "$DefaultDownloadDir" ]]; then
+				rm -rf "$DefaultDownloadDir" "$DownloadDir"
+				ln -s "$DownloadDir" "$DefaultDownloadDir"
+			else
+				install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
+				ln -s "$DownloadDir" "$DefaultDownloadDir"
+			fi
+		fi
+	else
+		if [[ -L "$DefaultDownloadDir" ]]; then
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
+		elif [[ -d "$DefaultDownloadDir" ]]; then
+			mv -rf "$DefaultDownloadDir" "$DownloadDir"
+			ln -s "$DownloadDir" "$DefaultDownloadDir"
+		else
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
+			ln -s "$DownloadDir" "$DefaultDownloadDir"
+		fi
+	fi
 	
-	if [[ -z "$BetaPostfix" ]]; then # Orig
-		sudo -u "$SteamUser" install -d -m 775 "$DownloadDirOrig"
-		if [[ -d "$CacheDirBeta" ]]; then
-			ln -s "$CacheDirBeta" "$CacheDirOrig"
-			rm -rf "$DownloadDirOrig"
-			ln -s "$DownloadDirBeta" "$DownloadDirOrig"
-		else
-			sudo -u "$SteamUser" install -d -m 775 "$CacheDirOrig"
-		fi
-	else # Beta
-		sudo -u "$SteamUser" install -d -m 775 "$DownloadDirBeta"
-		if [[ -d "$CacheDirOrig" ]]; then
-			ln -s "$CacheDirOrig" "$CacheDirBeta"
-			rm -rf "$DownloadDirBeta"
-			ln -s "$DownloadDirOrig" "$DownloadDirBeta"
-		else
-			sudo -u "$SteamUser" install -d -m 775 "$CacheDirBeta"
-		fi
+	if ! [[ -d "$CacheDir" ]]; then
+		install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$CacheDir"
+	fi
+	if ! [[ -L "$DefaultCacheDir" ]]; then
+		ln -s "$CacheDir" "$DefaultCacheDir"
 	fi
 }
 
@@ -491,8 +491,8 @@ function first_install ()
 		exit 1
 	fi
 	
-	rm -rf "$LogDir"
-	ln -s "/var/log/kf2-srv$BetaPostfix" "$LogDir"
+	rm -rf "$DefaultLogDir"
+	ln -s "$LogDir" "$DefaultLogDir"
 	
 	echo "Creating base ini files"
 	sudo -u "$SteamUser" $AppBin &> /dev/null &
@@ -577,9 +577,9 @@ function first_install ()
 	do sleep 2; done
 	
 	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
-	create_map_dirs
+	create_cache
 	fix_steamclient_so
-	ln -s "$InstanceConfigDir" "$InstanceConfigLnk"
+	ln -s "$InstanceConfigDir" "$DefaultConfigDir/instances"
 	make_default_instance
 	echo "KF2 succesfully installed"
 }
@@ -775,7 +775,7 @@ function workshop_list ()
 			for WorkshopID in $(workshop_list_ids)
 			do
 				local Cache="$CacheDir/$WorkshopID"
-				local Downl="$DownloadDir/$WorkshopID"
+				local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
 				local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
 				local WsName=$(name_by_workshopID "$WorkshopID")
 				if [[ -n "$WsName" ]]; then
@@ -823,7 +823,7 @@ function workshop_del () # $*: WorkshopID[s]
 		local WorkshopID=$(any_to_workshopID "$Map")
 		local WsName=$(name_by_workshopID "$WorkshopID")
 		local Cache="$CacheDir/$WorkshopID"
-		local Downl="$DownloadDir/$WorkshopID"
+		local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
 		echo -e "Clear cache:\n$Cache\n$Downl"
 		rm -rf "$Cache" "$Downl"
 		for Instance in $(show_instances)
@@ -1189,7 +1189,7 @@ function password_admin () # $1: Password (if empty, use: ''), $*: Instance[s]
 			local Service=$(service_name "$Instance")
 			if systemctl -q is-active $Service ; then
 				admin_curl "$Instance" "ServerAdmin/policy/passwords" \
-				--request POST               \
+				--request POST                \
 				--data action="adminpassword" \
 				--data adminpw1="$Password"   \
 				--data adminpw2="$Password"
@@ -1236,12 +1236,17 @@ fi
 
 InstallDir="/usr/games/kf2-srv$BetaPostfix"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+
 DefaultConfigDir="$InstallDir/KFGame/Config"
-DownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop/content/$AppClientNum"
-CacheDir="$InstallDir/KFGame/Cache"
-LogDir="$InstallDir/KFGame/Logs"
+DefaultDownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop"
+DefaultCacheDir="$InstallDir/KFGame/Cache"
+DefaultLogDir="$InstallDir/KFGame/Logs"
+
+DownloadDir="/var/cache/kf2-srv/workshop"
+CacheDir="/var/cache/kf2-srv/cache"
+LogDir="/var/log/kf2-srv$BetaPostfix"
+
 InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
-InstanceConfigLnk="$DefaultConfigDir/instances"
 InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
 
 if [[ $# -eq 0 ]]; then show_help; exit 0; fi

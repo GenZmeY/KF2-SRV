@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.12.1
+Version:    0.13.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -69,6 +69,7 @@ install -d %{buildroot}/%{_prefix}/games/%{name}-beta
 install -d %{buildroot}/%{_datadir}/licenses/%{name}
 install -d %{buildroot}/%{_localstatedir}/log/%{name}
 install -d %{buildroot}/%{_localstatedir}/log/%{name}-beta
+install -d %{buildroot}/%{_localstatedir}/cache/kf2-srv
 
 # access rights are used here to prevent warnings when building the package
 install -m 755 %{SOURCE1}  %{buildroot}/%{_bindir}
@@ -89,6 +90,10 @@ install -m 644 %{SOURCE15} %{buildroot}/%{_sysconfdir}/%{name}
 install -m 755 %{SOURCE16} %{buildroot}/%{_sbindir}
 install -m 644 %{SOURCE17} %{buildroot}/%{_prefix}/lib/systemd/system
 
+%check
+bash -n %{buildroot}/%{_bindir}/%{name}
+bash -n %{buildroot}/%{_bindir}/%{name}-beta
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -101,6 +106,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
+%attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/cache/kf2-srv
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/instance.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(0640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/bot.conf
@@ -121,15 +127,22 @@ if [[ $1 -eq 0 ]] ; then # Uninstall
 	rm -rf %{_prefix}/games/%{name}-beta/*
 	rm -rf %{_sysconfdir}/%{name}/instances/default
 	rm -rf %{_sysconfdir}/%{name}/instances-beta/default
+	rm -rf %{_localstatedir}/cache/kf2-srv/*
 fi
 
 %post
-#if [[ $1 == 1 ]]; then # Install
-systemctl daemon-reload
-systemctl try-restart rsyslog.service
-#fi
+if [[ $1 == 1 ]]; then # Install
+	systemctl daemon-reload
+	systemctl try-restart rsyslog.service
+fi
 
 %changelog
+* Sun Jul 19 2020 GenZmeY <genzmey@gmail.com> - 0.13.0-1
+- /var/cache to store the workshop cache;
+- fixed endless downloading of workshop items that tripware gave us in PC Build 1099 patch;
+- using ForcePermissions when creating instances;
+- add %check section to specfile.
+
 * Mon Jul 13 2020 GenZmeY <genzmey@gmail.com> - 0.12.1-1
 - rename main.conf to instance.conf.
  
