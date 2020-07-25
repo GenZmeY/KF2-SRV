@@ -7,7 +7,6 @@
 - check ban EGS players (mb bugs)
 - ban history
 - temporary ban
-- understand what causes a "cpu hurricane" at startup
 - generate unique password for server bot on install
 - parallel actions
 - bash completion
