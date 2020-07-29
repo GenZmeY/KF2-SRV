@@ -8,6 +8,7 @@ Group:      Amusements/Games
 License:    GNU GPLv3
 BuildArch:  noarch
 
+Source0:    %{name}-%{version}.tar.gz 
 Source1:    %{name}
 Source2:    %{name}-beta
 Source3:    %{name}.xml
