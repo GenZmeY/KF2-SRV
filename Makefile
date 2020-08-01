@@ -17,11 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-NAME          := "kf2-srv"
+NAME          := kf2-srv
 
-RPMBUILDDIR   := "$$HOME/rpmbuild"
-ACTIVEDIR     := $(shell readlink -e "$$HOME/rpmbuild")
-WORKDIR       := $(shell readlink -e ".")
+RPMBUILDDIR   := $$HOME/rpmbuild
+ACTIVEDIR     := $(shell readlink -e $$HOME/rpmbuild)
+WORKDIR       := $(shell readlink -e .)
 
 BUILDDIR      := $(WORKDIR)/BUILD
 BUILDROOTDIR  := $(WORKDIR)/BUILDROOT
@@ -32,9 +32,8 @@ SRPMSDIR      := $(WORKDIR)/SRPMS
 SCRIPTSDIR    := $(SOURCESDIR)/scripts
 
 SPEC          := $(SPECSDIR)/$(NAME).spec
-SOURCETARBALL := $(SOURCESDIR)$(NAME)-$(VERSION).tar.gz
-
-VERSION      := $(shell grep -Fi 'Version:' $(SPEC) | awk '{ print $$2 }')
+VERSION       := $(shell grep -Fi 'Version:' $(SPEC) | awk '{ print $$2 }')
+SOURCETARBALL := $(SOURCESDIR)/$(NAME)-$(VERSION).tar.gz
 
 .PHONY: all prep rpm srpm activate check-activate clean-tmp clean-pkg clean
 
