@@ -9,23 +9,6 @@ License:    GNU GPLv3
 BuildArch:  noarch
 
 Source0:    %{name}-%{version}.tar.gz 
-Source1:    %{name}
-Source2:    %{name}-beta
-Source3:    %{name}.xml
-Source4:    %{name}@.service
-Source5:    %{name}-update.service
-Source6:    %{name}-update.timer
-Source7:    instance.conf.template
-Source8:    %{name}-beta@.service
-Source9:    %{name}-beta-update.service
-Source10:   %{name}-beta-update.timer
-Source11:   %{name}.conf
-Source12:   COPYING
-Source13:   rsyslog-%{name}.conf
-Source14:   logrotate-%{name}
-Source15:   bot.conf
-Source16:   %{name}-force-attr
-Source17:   %{name}-force-attr.service
 
 Requires:   systemd >= 219
 Requires:   steamcmd
@@ -50,50 +33,17 @@ Provides:   %{name}
 Command line tool for managing a set of Killing Floor 2 servers.
 
 %prep
+%setup -q -c
 
 %build
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-install -d %{buildroot}/%{_bindir}
-install -d %{buildroot}/%{_sbindir}
-install -d %{buildroot}/%{_prefix}/lib/systemd/system
-install -d %{buildroot}/%{_prefix}/lib/firewalld/services
-install -d %{buildroot}/%{_sysconfdir}/%{name}/instances
-install -d %{buildroot}/%{_sysconfdir}/%{name}/instances-beta
-install -d %{buildroot}/%{_sysconfdir}/%{name}/mapcycles
-install -d %{buildroot}/%{_sysconfdir}/rsyslog.d
-install -d %{buildroot}/%{_sysconfdir}/logrotate.d
-install -d %{buildroot}/%{_prefix}/games/%{name}
-install -d %{buildroot}/%{_prefix}/games/%{name}-beta
-install -d %{buildroot}/%{_datadir}/licenses/%{name}
-install -d %{buildroot}/%{_localstatedir}/log/%{name}
-install -d %{buildroot}/%{_localstatedir}/log/%{name}-beta
-install -d %{buildroot}/%{_localstatedir}/cache/kf2-srv
-
-# access rights are used here to prevent warnings when building the package
-install -m 755 %{SOURCE1}  %{buildroot}/%{_bindir}
-install -m 755 %{SOURCE2}  %{buildroot}/%{_bindir}
-install -m 644 %{SOURCE3}  %{buildroot}/%{_prefix}/lib/firewalld/services
-install -m 644 %{SOURCE4}  %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE5}  %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE6}  %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE7}  %{buildroot}/%{_sysconfdir}/%{name}
-install -m 644 %{SOURCE8}  %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE9}  %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE10} %{buildroot}/%{_prefix}/lib/systemd/system
-install -m 644 %{SOURCE11} %{buildroot}/%{_sysconfdir}/%{name}
-install -m 644 %{SOURCE12} %{buildroot}/%{_datadir}/licenses/%{name}
-install -m 644 %{SOURCE13} %{buildroot}/%{_sysconfdir}/rsyslog.d/%{name}.conf
-install -m 644 %{SOURCE14} %{buildroot}/%{_sysconfdir}/logrotate.d/%{name}
-install -m 644 %{SOURCE15} %{buildroot}/%{_sysconfdir}/%{name}
-install -m 755 %{SOURCE16} %{buildroot}/%{_sbindir}
-install -m 644 %{SOURCE17} %{buildroot}/%{_prefix}/lib/systemd/system
+make install PREFIX=%{buildroot}/%{_prefix}
 
 %check
-bash -n %{buildroot}/%{_bindir}/%{name}
-bash -n %{buildroot}/%{_bindir}/%{name}-beta
+make test PREFIX=%{buildroot}/%{_prefix}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
