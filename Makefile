@@ -29,20 +29,24 @@ RPMSDIR       := $(WORKDIR)/RPMS
 SOURCESDIR    := $(WORKDIR)/SOURCES
 SPECSDIR      := $(WORKDIR)/SPECS
 SRPMSDIR      := $(WORKDIR)/SRPMS
-SCRIPTSDIR    := $(SOURCESDIR)/scripts
 
 SPEC          := $(SPECSDIR)/$(NAME).spec
 VERSION       := $(shell grep -Fi 'Version:' $(SPEC) | awk '{ print $$2 }')
 SOURCETARBALL := $(SOURCESDIR)/$(NAME)-$(VERSION).tar.gz
 
-.PHONY: all prep rpm srpm activate check-activate clean-tmp clean-pkg clean
+.PHONY: all prep rpm srpm activate active check-activate clean-tmp clean-pkg clean
 
 all: check-activate prep
 	rpmbuild -ba $(SPEC)
 	$(MAKE) clean-tmp
 
 prep: clean-tmp
-	tar czf $(SOURCETARBALL) -C $(SCRIPTSDIR) .
+	cd $(SOURCESDIR) && tar czf $(SOURCETARBALL) \
+		config     \
+		force-attr \
+		main       \
+		COPYING    \
+		Makefile
 
 rpm: check-activate prep
 	rpmbuild -bb $(SPEC)
@@ -51,6 +55,8 @@ rpm: check-activate prep
 srpm: check-activate prep
 	rpmbuild -bs $(SPEC)
 	$(MAKE) clean-tmp
+
+active: activate
 
 activate:
     ifeq ($(shell test -d $(RPMBUILDDIR); echo $$?), 0)

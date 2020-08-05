@@ -446,9 +446,9 @@ function fix_steamclient_so ()
 	rm -f "$InstallDir/linux64/steamclient.so"
 	rm -f "$InstallDir/steamclient.so"
 	rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
-	ln -s "/usr/share/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
-	ln -s "/usr/share/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
-	ln -s "/usr/share/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
 }
 
 function create_cache () 
@@ -1234,7 +1234,7 @@ if [[ "$1" == "beta" ]]; then
 	BetaPostfix="-beta"; shift
 fi
 
-InstallDir="/usr/games/kf2-srv$BetaPostfix"
+InstallDir=":DEFINE_PREFIX:/games/kf2-srv$BetaPostfix"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 
 DefaultConfigDir="$InstallDir/KFGame/Config"
