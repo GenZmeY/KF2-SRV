@@ -5,7 +5,7 @@ Description=kf2-srv force attr service
 Type=simple
 StandardOutput=null
 StandardError=null
-ExecStart=/usr/sbin/kf2-srv-force-attr
+ExecStart=:DEFINE_PREFIX:/sbin/kf2-srv-force-attr
 Restart=always
 
 NoNewPrivileges=yes

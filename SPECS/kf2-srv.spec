@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.13.0
+Version:    0.14.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -11,7 +11,7 @@ BuildArch:  noarch
 Source0:    %{name}-%{version}.tar.gz 
 
 Requires:   systemd >= 219
-Requires:   steamcmd
+Requires:   steamcmd >= 2018.01.05-5
 Requires:   libxml2
 Requires:   dos2unix
 Requires:   curl
@@ -40,10 +40,10 @@ Command line tool for managing a set of Killing Floor 2 servers.
 %install
 rm -rf $RPM_BUILD_ROOT
 
-make install PREFIX=%{buildroot}/%{_prefix}
+make install BUILDROOT=%{buildroot} PREFIX=%{_prefix}
 
 %check
-make test PREFIX=%{buildroot}/%{_prefix}
+make test BUILDROOT=%{buildroot} PREFIX=%{_prefix}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -65,7 +65,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755,root,root)                            %{_bindir}/%{name}
 %attr(0755,root,root)                            %{_bindir}/%{name}-beta
 %attr(0755,root,root)                            %{_sbindir}/%{name}-force-attr
-%attr(0644,root,root)                            %{_prefix}/lib/systemd/system/*
+%attr(0644,root,root)                            %{_unitdir}/*
 %attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 %attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
 %attr(0644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}

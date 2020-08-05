@@ -21,7 +21,7 @@
 
 declare -A ModeNames MutNames
 
-source /etc/kf2-srv/kf2-srv.conf
+source "/etc/kf2-srv/kf2-srv.conf"
 
 DirLog="/var/log/kf2-srv"
 DirLogBeta="/var/log/kf2-srv-beta"
