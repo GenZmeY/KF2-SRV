@@ -59,7 +59,9 @@ srpm: check-activate prep
 active: activate
 
 activate:
-    ifeq ($(shell test -d $(RPMBUILDDIR); echo $$?), 0)
+    ifeq ($(shell test -L $(RPMBUILDDIR); echo $$?), 0)
+		rm -f $(RPMBUILDDIR)
+    else ifeq ($(shell test -d $(RPMBUILDDIR); echo $$?), 0)
 		mv -f $(RPMBUILDDIR) $(RPMBUILDDIR).old
     else
 		rm -f $(RPMBUILDDIR)
