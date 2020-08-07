@@ -19,30 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-function run_as_steamuser () # $@: command
-{
-	include /etc/steamcmd/steamcmd.conf
-	
-	if [[ "$USER" == "$SteamUser" ]]; then
-		"$@"
-	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
-		sudo -u "$SteamUser" "$@"
-	else
-		echo "You must be a $SteamUser, root or sudo-user to run this command."
-	fi
-}
-
-function run_as_root () # $@: command
-{
-	if [[ "$EUID" -eq 0 ]]; then
-		"$@"
-	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]]; then
-		sudo "$@"
-	else
-		echo "You must be root or sudo-user to run this command."
-	fi
-}
-
 InstallDir=":DEFINE_PREFIX:/games/kf2-srv${KF2POSTFIX}"
 AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
 
