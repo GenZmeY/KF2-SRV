@@ -37,19 +37,16 @@ function include () # $1: Lib
 function is_help () # $1: Arg
 {
 	echo "$1" | grep -Piqo '^(-h|--help|help)$'
-	return $?
 }
 
 function is_version () # $1: Arg
 {
 	echo "$1" | grep -Piqo '^(-v|--version|version)$'
-	return $?
 }
 
 function function_exists () # $1: function name
 {
 	type "$1" &> /dev/null
-	return $?
 }
 
 function indent () # $1: Level
@@ -63,21 +60,21 @@ function indent () # $1: Level
 
 function groups_list ()
 {
-	find "$GrpDir"    \
-		-mindepth 1             \
-		-maxdepth 1             \
-		-type d                 \
-		-printf "%f\n" |        \
+	find "$GrpDir"       \
+		-mindepth 1      \
+		-maxdepth 1      \
+		-type d          \
+		-printf "%f\n" | \
 	sort
 }
 
 function commands_list () # $1: Command group
 {
-	find "$GrpDir/$1" \
-		-mindepth 1             \
-		-maxdepth 1             \
-		-type f                 \
-		-printf "%f\n" |        \
+	find "$GrpDir/$1"    \
+		-mindepth 1      \
+		-maxdepth 1      \
+		-type f          \
+		-printf "%f\n" | \
 	sort
 }
 
@@ -148,7 +145,13 @@ elif [[ -d "$GroupPathname" ]]; then
 			fi
 		else
 			if function_exists "cmd_main"; then
-				cmd_main "$@"
+				if function_exists "cmd_need_superuser" && cmd_need_superuser; then
+					run_as_root "$ScriptFullname" "$Group" "$Command" "$@"
+				elif function_exists "cmd_need_steamuser" && cmd_need_steamuser; then
+					run_as_steamuser "$ScriptFullname" "$Group" "$Command" "$@"
+				else
+					cmd_main "$@"
+				fi
 			else
 				echo "No implementation for the command $Command"
 			fi
