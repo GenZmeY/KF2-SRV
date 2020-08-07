@@ -34,6 +34,30 @@ function include () # $1: Lib
 	fi
 }
 
+function run_as_steamuser () # $@: command
+{
+	include "/etc/steamcmd/steamcmd.conf"
+	
+	if [[ "$(whoami)" == "$SteamUser" ]]; then
+		shift 2; cmd_main "$@"
+	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
+		sudo -u "$SteamUser" "$@"
+	else
+		echo "You must be a $SteamUser, root or sudo-user to run this command."
+	fi
+}
+
+function run_as_root () # $@: command
+{
+	if [[ "$(whoami)" == "root" ]]; then
+		shift 2; cmd_main "$@"
+	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]]; then
+		sudo "$@"
+	else
+		echo "You must be root or sudo-user to run this command."
+	fi
+}
+
 function is_help () # $1: Arg
 {
 	echo "$1" | grep -Piqo '^(-h|--help|help)$'
@@ -146,9 +170,9 @@ elif [[ -d "$GroupPathname" ]]; then
 		else
 			if function_exists "cmd_main"; then
 				if function_exists "cmd_need_superuser" && cmd_need_superuser; then
-					run_as_root "$ScriptFullname" "$Group" "$Command" "$@"
+					run_as_root "${ScriptFullname}${KF2POSTFIX}" "$Group" "$Command" "$@"
 				elif function_exists "cmd_need_steamuser" && cmd_need_steamuser; then
-					run_as_steamuser "$ScriptFullname" "$Group" "$Command" "$@"
+					run_as_steamuser "${ScriptFullname}${KF2POSTFIX}" "$Group" "$Command" "$@"
 				else
 					cmd_main "$@"
 				fi
