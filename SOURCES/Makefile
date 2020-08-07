@@ -198,15 +198,15 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/delete
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/sync
 	
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/ban.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/game.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/globals.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/instance.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/maprotate.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/password.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/playerids.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/webadmin.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/main/lib/workshop.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/ban.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/game.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/globals.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/instance.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/maprotate.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/password.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/playerids.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/webadmin.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/workshop.lib
 
 
 clean:
