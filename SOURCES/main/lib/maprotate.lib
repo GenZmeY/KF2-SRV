@@ -32,6 +32,7 @@ function maprotate_load () # $*: Instance[s]
 	
 	for Instance in $InstanceList
 	do
+	(
 		local Service=$(service_name "$Instance")
 		local MapRotate="$InstanceConfigDir/$Instance/MapRotate.ini"
 		if ! instance_exists "$Instance"; then	
@@ -69,7 +70,9 @@ function maprotate_load () # $*: Instance[s]
 			sed -i --follow-symlinks -r "/(ActiveMapCycle=|GameMapCycles=)/d" "$Config"
 			sed -i --follow-symlinks "/\[KFGame\.KFGameInfo\]/ r $MapRotate" "$Config"
 		fi
+	) &
 	done
+	wait
 }
 
 function maprotate_save () # $*: Instance[s]
