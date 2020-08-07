@@ -90,6 +90,7 @@ function workshop_add () # $*: WorkshopID[s]
 	
 	for Instance in $(show_instances)
 	do
+	(
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
 		multini -ar "$Config" "IpDrv.TcpNetDriver" "DownloadManagers" "OnlineSubsystemSteamworks.SteamWorkshopDownload"
 		for Map in $*
@@ -100,7 +101,9 @@ function workshop_add () # $*: WorkshopID[s]
 				multini -ar "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
 			fi
 		done
+	) &
 	done
+	wait
 }
 
 function workshop_delete () # $*: WorkshopID[s]
@@ -117,6 +120,7 @@ function workshop_delete () # $*: WorkshopID[s]
 		rm -rf "$Cache" "$Downl"
 		for Instance in $(show_instances)
 		do
+		(
 			local ConfigEngine="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
 			multini -d "$ConfigEngine" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
 			if echo "$WsName" | grep -qP '\.kfm$' ; then
@@ -125,7 +129,9 @@ function workshop_delete () # $*: WorkshopID[s]
 				local ConfigGame="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
 				multini -d "$ConfigGame" "$WsNameShort KFMapSummary"
 			fi
-		done 
+		) &
+		done
+		wait 
 	done
 }
 
@@ -138,6 +144,7 @@ function workshop_sync ()
 	# TODO: Make it faster
 	for Instance in $(show_instances)
 	do
+	(
 		local Service=$(service_name "$Instance")
 		if ! instance_exists "$Instance"; then
 			echo "Instance $Instance not exitst"
@@ -168,6 +175,8 @@ function workshop_sync ()
 				fi
 			done
 		fi
+	) &
 	done
+	wait
 }
 

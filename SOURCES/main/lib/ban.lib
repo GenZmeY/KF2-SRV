@@ -106,6 +106,7 @@ function ban_ID3 () # $1: ID3
 	ID3="$1"
 	for Instance in $(show_instances)
 	do
+	(
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
 		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
 		local Service=$(service_name "$Instance")
@@ -121,7 +122,9 @@ function ban_ID3 () # $1: ID3
 				multini -a "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
 			fi
 		fi
-	done 
+	) &
+	done
+	wait
 }
 
 function unban_ID3 () # $1: ID3
@@ -132,6 +135,7 @@ function unban_ID3 () # $1: ID3
 	ID3="$1"
 	for Instance in $(show_instances)
 	do
+	(
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
 		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
 		local Service=$(service_name "$Instance")
@@ -156,6 +160,8 @@ function unban_ID3 () # $1: ID3
 				multini -d "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
 			fi
 		fi
-	done 
+	) &
+	done
+	wait
 }
 
