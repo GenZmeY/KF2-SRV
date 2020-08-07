@@ -39,6 +39,9 @@ BINDIR          = $(BUILDROOT)$(PREFIX)/bin
 SBINDIR         = $(BUILDROOT)$(PREFIX)/sbin
 GAMEDIR         = $(BUILDROOT)$(PREFIX)/games
 DATADIR         = $(BUILDROOT)$(PREFIX)/share
+SCRIPTDIR       = $(DATADIR)/$(NAME)
+SCRIPTGRPDIR    = $(SCRIPTDIR)/cmdgrp
+SCRIPTLIBDIR    = $(SCRIPTDIR)/lib
 LICENSEDIR      = $(DATADIR)/licenses/$(NAME)
 KF2MAINDIR      = $(GAMEDIR)/$(NAME)
 KF2BETADIR      = $(GAMEDIR)/$(NAME)-beta
@@ -84,10 +87,28 @@ filesystem:
 	test -d '$(FIREWALLDDIR)' || install -m 755 -d '$(FIREWALLDDIR)'
 	test -d '$(LOGROTATEDIR)' || install -m 755 -d '$(LOGROTATEDIR)'
 	test -d '$(RSYSLOGDIR)'   || install -m 755 -d '$(RSYSLOGDIR)'
+	test -d '$(SCRIPTGRPDIR)' || install -m 755 -d '$(SCRIPTGRPDIR)'
+	test -d '$(SCRIPTLIBDIR)' || install -m 755 -d '$(SCRIPTLIBDIR)'
 
 install: filesystem build
 	install -m 755 $(RELEASEDIR)/main/$(NAME)                                  $(BINDIR)
 	install -m 755 $(RELEASEDIR)/main/$(NAME)-beta                             $(BINDIR)
+	
+	# ugly, but works
+	find $(RELEASEDIR)/main/cmdgrp                    \
+		-mindepth 1                                   \
+		-maxdepth 1                                   \
+		-type d                                       \
+		-printf "%f\n" |                              \
+	while read CmdGrp;                                \
+	do                                                \
+		pushd   $(RELEASEDIR)/main/cmdgrp/$$CmdGrp;   \
+		install -m 755 -d $(SCRIPTGRPDIR)/$$CmdGrp;   \
+		install -m 644  * $(SCRIPTGRPDIR)/$$CmdGrp;   \
+		popd;                                         \
+	done
+	
+	install -m 644 $(RELEASEDIR)/main/lib/*                                    $(SCRIPTLIBDIR)
 	
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)@.service                 $(UNITDIR)
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-beta@.service            $(UNITDIR)
@@ -136,7 +157,7 @@ test: fake-systemd-build
     ifeq ($(shell $(LOGROTATECHECK) $(RELEASEDIR)/main/logrotate/$(NAME) 2>&1 | grep -qi 'error'; echo $$?), 0)
 		$(LOGROTATECHECK) $(RELEASEDIR)/main/logrotate/$(NAME)
     endif
-	
+
 	$(XMLCHECK)       $(RELEASEDIR)/main/firewalld/$(NAME).xml
 	
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)@.service
@@ -150,6 +171,32 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/$(NAME)
 	$(BASHCHECK)      $(RELEASEDIR)/main/$(NAME)-beta
 	$(BASHCHECK)      $(RELEASEDIR)/force-attr/$(NAME)-force-attr
+	
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/list
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/add
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/delete
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/sync
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/game/update
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/game/validate
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/game/fix-permissions
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/game/run
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/list
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/add
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/delete
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/enable
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/disable
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/start
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/stop
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/restart
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/instance/chat
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/maprotate/save
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/maprotate/load
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/password/game
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/password/admin
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/list
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/add
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/delete
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/sync
 
 clean:
 	rm -rf $(RELEASEDIR)
