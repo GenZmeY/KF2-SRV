@@ -19,6 +19,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export KF2POSTFIX="-beta"
-":DEFINE_PREFIX:/bin/kf2-srv" "$@"
+function cmd_usage ()
+{
+	# How use it
+	# example:
+	# echo "[-h] <arg1> <arg2>"
+}
+
+function cmd_info ()
+{
+	# What this command do (briefly)
+	# You can use multiple lines, but one is better
+	# Example:
+	# echo "Create new instance"
+}
+
+function cmd_help ()
+{
+	# Full help on command usage
+}
+
+function cmd_main ()
+{
+	include "$LibDir/instance.lib"
+	
+	instance_stop "$@"
+}
 

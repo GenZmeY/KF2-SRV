@@ -1,0 +1,161 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	
+function ban_add () # $*: ban list
+{
+	include "$LibDir/playerids.lib"
+
+	if [[ -z "$*" ]]; then
+		echo "Nothing to do"
+		exit 1
+	fi
+	
+	for Ban in $*
+	do
+		ban_ID3 $(any_to_ID3 "$Ban")
+	done
+}
+
+function ban_delete () # $*: ban list
+{
+	include "$LibDir/playerids.lib"
+	
+	if [[ -z "$*" ]]; then
+		echo "Nothing to do"
+		exit 1
+	fi
+	
+	for Ban in $*
+	do
+		unban_ID3 $(any_to_ID3 "$Ban")
+	done
+}
+
+function ban_sync ()
+{
+	ban_list_id3 | \
+	while read ID3
+	do
+		ban_ID3 "$ID3"
+	done
+}
+
+function ban_list ()
+{
+	include "$LibDir/playerids.lib"
+
+	{
+		local Num=1
+		echo "NUM STEAM_ID3 STEAM_ID64 URL_CONST URL_EFFECTIVE"
+		for ID3 in $(ban_list_id3)
+		do
+			local ID64=$(steamID3_to_steamID64 "$ID3")
+			local UrlConst="https://steamcommunity.com/profiles/$ID64"
+			local UrlEffective=$(curl "$UrlConst" -s -L -I -o /dev/null -w '%{url_effective}')
+			if [[ "$UrlConst" == "$UrlEffective" ]]; then
+				UrlEffective="-"
+			fi
+			echo "$Num $ID3 $ID64 $UrlConst $UrlEffective"
+			((Num++))
+		done
+	} | column -t
+}
+
+function ban_list_id3 ()
+{
+	include "$LibDir/instance.lib"
+	
+	local BanList=''
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+		if multini -gq "$Config" "Engine.AccessControl" "BannedIDs"; then
+			if [[ -n "$BanList" ]]; then
+				BanList+=$'\n'
+			fi
+			BanList+=$(multini -g "$Config" "Engine.AccessControl" "BannedIDs" | sed -r 's/.+A=([0-9]+),.+/\1/')
+		fi
+	done
+	echo "$BanList" | sort -V -u
+}
+
+function ban_ID3 () # $1: ID3
+{
+	include "$LibDir/instance.lib"
+	include "$LibDir/webadmin.lib"
+	include "$LibDir/playerids.lib"
+
+	ID3="$1"
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		local Service=$(service_name "$Instance")
+		if ! multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
+			echo "Add ban $ID3 to $Instance"
+			if systemctl -q is-active $Service ; then
+				admin_curl "$Instance" "ServerAdmin/policy/bans"    \
+					--request POST                                  \
+					--data action="add"                             \
+					--data steamint64=$(steamID3_to_steamID64 $ID3) \
+					--data uniqueid=
+			else
+				multini -a "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
+			fi
+		fi
+	done 
+}
+
+function unban_ID3 () # $1: ID3
+{
+	include "$LibDir/instance.lib"
+	include "$LibDir/webadmin.lib"
+
+	ID3="$1"
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		local Service=$(service_name "$Instance")
+		if systemctl -q is-active $Service ; then
+			local PlainID=0
+			while read Line
+			do
+				if echo "$Line" | grep -qF "A=$ID3,"; then
+					echo "Remove ban $ID3 from $Instance"
+					admin_curl "$Instance" "ServerAdmin/policy/bans"    \
+						--request POST                                  \
+						--data action="delete"                          \
+						--data banid="plainid:$PlainID"
+					break
+				else
+					((PlainID++))
+				fi
+			done < <(multini -g "$Config" 'Engine.AccessControl' 'BannedIDs')
+		else
+			if multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
+				echo "Remove ban $ID3 from $Instance"
+				multini -d "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
+			fi
+		fi
+	done 
+}
+

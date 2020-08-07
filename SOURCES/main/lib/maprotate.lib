@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	
+function maprotate_load () # $*: Instance[s]
+{
+	include "$LibDir/instance.lib"
+	include "$LibDir/webadmin.lib"
+
+
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	for Instance in $InstanceList
+	do
+		local Service=$(service_name "$Instance")
+		local MapRotate="$InstanceConfigDir/$Instance/MapRotate.ini"
+		if ! instance_exists "$Instance"; then	
+			echo "Instance $Instance not exists"
+		elif ! [[ -e "$MapRotate" ]]; then
+			echo "$MapRotate not found - skip"
+		elif systemctl -q is-active $Service ; then
+			# TODO: Delete other cycles
+			# Example: maplistidx=1&mapcycle=KF-Airship%0D%0A&delete=doit
+			local ActiveCycleIndex=$(multini -g "$MapRotate" '' 'ActiveMapCycle')
+			local ActiveCycleWeb=''
+			local Index=0
+			while read MapCycle
+			do
+				local MapCycleWeb=$(map_rotate_to_webstring "$MapCycle")
+				admin_curl "$Instance" "ServerAdmin/settings/maplist"  \
+				--request POST                                         \
+				--data maplistidx="$Index"                             \
+				--data mapcycle="$MapCycleWeb"                         \
+				--data action="save"
+				if [[ "$Index" -eq "$ActiveCycleIndex" ]]; then
+					ActiveCycleWeb="$MapCycleWeb"
+				fi
+				((Index++))
+			done < <(multini -g "$MapRotate" '' 'GameMapCycles')
+			if [[ -n "$ActiveCycleWeb" ]]; then
+				admin_curl "$Instance" "ServerAdmin/settings/maplist"  \
+				--request POST                                         \
+				--data maplistidx="$ActiveCycleIndex"                  \
+				--data mapcycle="$ActiveCycleWeb"                      \
+				--data activate="activate"
+			fi
+		else
+			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+			sed -i --follow-symlinks -r "/(ActiveMapCycle=|GameMapCycles=)/d" "$Config"
+			sed -i --follow-symlinks "/\[KFGame\.KFGameInfo\]/ r $MapRotate" "$Config"
+		fi
+	done
+}
+
+function maprotate_save () # $*: Instance[s]
+{
+	include "$LibDir/instance.lib"
+
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+			local MapRotate="$InstanceConfigDir/$Instance/MapRotate.ini"
+			grep -F 'ActiveMapCycle=' "$Config" > "$MapRotate"
+			grep -F 'GameMapCycles=' "$Config" >> "$MapRotate"
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+}
+
+function map_rotate_to_webstring () # $1: MapRotate
+{
+	local RN='%0D%0A'
+	echo "$1" | \
+	sed -r 's/^\(Maps=\("//' | \
+	sed -r 's/"\)\)$//' | \
+	sed 's/ /+/g' | \
+	sed "s/\",\"/${RN}/g"
+}
+

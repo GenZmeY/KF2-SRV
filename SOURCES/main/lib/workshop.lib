@@ -1,0 +1,173 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+function name_by_workshopID () # $1: WorkshopID
+{
+	local WorkshopID="$1"
+	local Cache="$CacheDir/$WorkshopID"
+	local Result=""
+	if [[ -d "$Cache" ]]; then
+		Result=$(find "$Cache" -type f -name '*.kfm' -printf '%f\n' | head -n 1)
+		if [[ -z "$Result" ]]; then
+			Result=$(find "$Cache" -type f -name '*.u' -printf '%f\n' | head -n 1)
+		fi
+	fi
+	echo "$Result"
+}
+
+function workshop_list_ids ()
+{
+	include "$LibDir/instance.lib"
+	
+	local WsList=''
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
+		if multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems"; then
+			if [[ -n "$WsList" ]]; then
+				WsList+=$'\n'
+			fi
+			WsList+=$(multini -g "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems")
+		fi
+	done
+	echo "$WsList" | sort -V -u
+}
+
+function workshop_list ()
+{
+	# TODO: Multiple *.kfm/*u in folder
+	{
+		echo "WORKSHOP_ID NAME SIZE WORKSHOP_URL"
+		{
+			for WorkshopID in $(workshop_list_ids)
+			do
+				local Cache="$CacheDir/$WorkshopID"
+				local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
+				local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
+				local WsName=$(name_by_workshopID "$WorkshopID")
+				if [[ -n "$WsName" ]]; then
+					local WsSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
+				else
+					local WsSize="-"; WsName="-"
+				fi
+				echo "$WorkshopID $WsName $WsSize $Url"
+			done
+		} | sort -k 2
+	} | column -t
+}
+
+function any_to_workshopID () # $1: WorkshopID/URL
+{
+	if echo "$1" | grep -qP '^http.+'; then
+		local WorkshopID=$(echo "$1" | sed -r 's/.+=([0-9]+)$/\1/') 
+	else
+		local WorkshopID="$1"
+	fi
+	echo "$WorkshopID"
+}
+
+function workshop_add () # $*: WorkshopID[s]
+{
+	include "$LibDir/instance.lib"
+	
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
+		multini -ar "$Config" "IpDrv.TcpNetDriver" "DownloadManagers" "OnlineSubsystemSteamworks.SteamWorkshopDownload"
+		for Map in $*
+		do
+			local WorkshopID=$(any_to_workshopID "$Map")
+			if ! multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"; then
+				echo "Add workshop $WorkshopID to $Instance"
+				multini -ar "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
+			fi
+		done
+	done
+}
+
+function workshop_delete () # $*: WorkshopID[s]
+{
+	include "$LibDir/instance.lib"
+	
+	for Map in $*
+	do
+		local WorkshopID=$(any_to_workshopID "$Map")
+		local WsName=$(name_by_workshopID "$WorkshopID")
+		local Cache="$CacheDir/$WorkshopID"
+		local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
+		echo -e "Clear cache:\n$Cache\n$Downl"
+		rm -rf "$Cache" "$Downl"
+		for Instance in $(show_instances)
+		do
+			local ConfigEngine="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
+			multini -d "$ConfigEngine" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
+			if echo "$WsName" | grep -qP '\.kfm$' ; then
+				echo "Remove map $WorkshopID ($WsName) from $Instance"
+				local WsNameShort=$(echo "$WsName" | sed 's/\.kfm$//')
+				local ConfigGame="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+				multini -d "$ConfigGame" "$WsNameShort KFMapSummary"
+			fi
+		done 
+	done
+}
+
+function workshop_sync ()
+{
+	include "$LibDir/instance.lib"
+	
+	workshop_add $(workshop_list_ids)
+	
+	# TODO: Make it faster
+	for Instance in $(show_instances)
+	do
+		local Service=$(service_name "$Instance")
+		if ! instance_exists "$Instance"; then
+			echo "Instance $Instance not exitst"
+		elif systemctl -q is-active $Service ; then
+			echo "Instance $Instance is running - skip."
+		else
+			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
+			for MapFile in $(find -L "$CacheDir" -type f -name '*.kfm' -printf "%f\n")
+			do
+				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||')
+				if ! multini -gq "$Config" "$MapName KFMapSummary"; then
+					echo "Adding $MapName to $Instance."
+					multini -s "$Config" "$MapName KFMapSummary" "MapName" "$MapName"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInSurvival"   "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInWeekly"     "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInVsSurvival" "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInEndless"    "True"
+					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInObjective"  "False"
+				fi
+			done
+			
+			for MutFile in $(find -L "$CacheDir" -type f -name '*.u' -printf "%f\n")
+			do
+				MutName=$(echo "$MutFile" | sed -r 's|.u$||')
+				if ! multini -gq "$Config" "$MutName KFMutatorSummary"; then
+					echo "Adding $MutName to $Instance."
+					multini -s "$Config" "$MutName KFMutatorSummary" "ClassName" ""
+				fi
+			done
+		fi
+	done
+}
+
