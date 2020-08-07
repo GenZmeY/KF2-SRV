@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# conversion algorithm taken from here:
+# https://github.com/noobient/killinuxfloor/blob/master/share/killinuxfloor
+# thank bviktor for that :)
+function steamID3_to_steamID64 () # $1: ID3
+{
+    # steamID64 = "7656" + (steamID3 + 1197960265728)
+    ID64=$1
+    ((ID64+=1197960265728))
+    ID64="7656${ID64}"
+    echo "$ID64"
+}
+
+function steamID64_to_steamID3 () # $1: ID4
+{
+    # steamID3 = substr(steamID64, 4) - 1197960265728
+    ID3=${1:4}
+    ((ID3-=1197960265728))
+    echo "$ID3"
+}
+
+function any_to_ID3 () # $1: ID3/ID64/Url
+{
+	if echo "$1" | grep -qP '^http.+'; then
+		local Xml=$(mktemp)
+		curl -ss "$1/?xml=1" > "$Xml"
+		local ID64=$(xmllint --xpath 'string(//steamID64/text())' "$Xml")
+		local ID3=$(steamID64_to_steamID3 "$ID64") 
+		rm -f "$Xml"
+	elif [[ $(echo "$1" | wc -m) -eq 18 ]] && echo "$1" | grep -qP '^76561[0-9]+' ; then
+		local ID3=$(steamID64_to_steamID3 "$1")
+	else
+		local ID3="$1"
+	fi
+	echo "$ID3"
+}
+

@@ -19,1264 +19,146 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-declare -a DiffNames
-declare -a WaveNames
-declare -A ModeNames
-declare -A MutNames
-
-source /etc/steamcmd/steamcmd.conf
-source /etc/kf2-srv/kf2-srv.conf
-source /etc/kf2-srv/bot.conf
-
 readonly ScriptFullname=$(readlink -e "$0")
-readonly ScriptName=$(echo "$ScriptFullname" | awk -F '/' '{print $NF;}')
-readonly ScriptVersion=$(rpm -qi "$ScriptName" | grep 'Version' | sed -r 's|.+: +||g') # mb problems in other langs ('Version')
+readonly ScriptName=$(basename $0)
+readonly ScriptVersion=$(rpm -q --queryformat '%{VERSION}' "$ScriptName")
 
-# Constants. Don't change.
-readonly AppServerNum="232130"
-readonly AppClientNum="232090"
-readonly StrangeConstUID="17825793"
-readonly ServerBotLogin="srvbot" 
+readonly GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
+readonly LibDir=":DEFINE_PREFIX:/share/kf2-srv/lib"
 
-function show_help ()
+function include () # $1: Lib
 {
-#	echo "TODO: English description"
-	echo "$ScriptName v$ScriptVersion"
-	echo "Централизование управление серверами Killing Floor 2"
-	echo "Usage:"
-	echo "${ScriptName}           OPTIONS   stable branch"
-	echo "${ScriptName}-beta      OPTIONS   beta branch"
+	if ! echo "$INC_LIBS" | grep -Foq "$1"; then
+		source "$1"
+		export INC_LIBS="$INC_LIBS:$1"
+	fi
+}
+
+function is_help () # $1: Arg
+{
+	echo "$1" | grep -Piqo '^(-h|--help|help)$'
+	return $?
+}
+
+function is_version () # $1: Arg
+{
+	echo "$1" | grep -Piqo '^(-v|--version|version)$'
+	return $?
+}
+
+function function_exists () # $1: function name
+{
+	type "$1" &> /dev/null
+	return $?
+}
+
+function indent () # $1: Level
+{
+	local Tab='  '
+	for ((i=0; i<$1; i++))
+	do
+		echo -n "$Tab"
+	done
+}
+
+function groups_list ()
+{
+	find "$GrpDir"    \
+		-mindepth 1             \
+		-maxdepth 1             \
+		-type d                 \
+		-printf "%f\n" |        \
+	sort
+}
+
+function commands_list () # $1: Command group
+{
+	find "$GrpDir/$1" \
+		-mindepth 1             \
+		-maxdepth 1             \
+		-type f                 \
+		-printf "%f\n" |        \
+	sort
+}
+
+function group_info () # $1: Command group
+{
+	local Command
+	for Command in $(commands_list $1)
+	do
+		local CommandPathName="$GrpDir/$1/$Command"
+		(	# subshell
+			source "$CommandPathName"
+			if function_exists "cmd_usage"; then
+				echo "$(indent 1)${ScriptName}${KF2POSTFIX} $1 $Command $(cmd_usage)"
+			else
+				echo "$(indent 1)${ScriptName}${KF2POSTFIX} $1 $Command"
+			fi
+			if function_exists "cmd_info"; then
+				cmd_info | sed -r "s|^|$(indent 2)|g"
+			else
+				echo "$(indent 2)No information"
+			fi
+		)
+	done
+}
+
+function full_info ()
+{
+	echo "${ScriptName}${KF2POSTFIX} v${ScriptVersion}"
+	echo "Command line tool for managing a set of Killing Floor 2 servers."
 	echo ""
-	echo "Mandatory arguments to long options are mandatory for short options too."
-	echo "  -n, --new       INSTANCE  создает новый ЭКЗЕМПЛЯР сервера"
-	echo "  -d, --delete   [INSTANCE] удаляет указанный ЭКЗМПЛЯР сервера; если"
-	echo "                            ЭКЗЕМПЛЯР не указан, удаляет все сервера"
-	echo "  -s, --status   [INSTANCE] отображает состояние указанного ЭКЗЕМПЛЯРА"
-	echo "                            сервера; если ЭКЗЕМПЛЯР не указан,"
-	echo "                            отображает состояние всех экземпляров сервера"
-	echo "  -u, --update              при первом запуске производит установку KF2;"
-	echo "                            в дальнейшем устанавливает обновления при их" 
-	echo "                            наличии"
-	echo "  -v, --validate            проверяет целостность файлов, при"
-	echo "                            необходимости перекачивает их."
-	echo "  -r, --run      [OPTIONS]  запускает экземпляр сервера с указанными"
-	echo "                            ПАРАМЕТРАМИ"
-	echo "  -c, --chat MSG [INSTANCE] отправляет сообщение в чат указанных экземпляров"
-	echo " -st, --start    [INSTANCE] запускает указанный ЭКЗЕМПЛЯР сервера; если"
-	echo "                            ЭКЗЕМПЛЯР не указан, запускает все"
-	echo "                            автозапускаемые экземпляры сервера"
-	echo " -sp, --stop     [INSTANCE] останавливает указанный ЭКЗЕМПЛЯР сервера;"
-	echo "                            если ЭКЗЕМПЛЯР не указан, останавливает все"
-	echo "                            экземпляры сервера"
-	echo " -rs, --restart  [INSTANCE] перезапускает указанный ЭКЗЕМПЛЯР сервера;"
-	echo "                            если ЭКЗЕМПЛЯР не указан, перезапускает"
-	echo "                            все автозапускаемые экземпляры сервера"
-	echo " -en, --enable   [INSTANCE] добавляет указанный ЭКЗЕМПЛЯР сервера в"
-	echo "                            автозапуск; если ЭКЗЕМПЛЯР не указан,"
-	echo "                            добавляет все экземпляры сервера в автозапуск"
-	echo " -di, --disable  [INSTANCE] удаляет указанный ЭКЗЕМПЛЯР сервера из"
-	echo "                            автозапуска; если ЭКЗЕМПЛЯР не указан,"
-	echo "                            удаляет все экземпляры сервера из автозапуска"
-	echo " -wl, --workshop-list       отображает список ресурсов из SteamWorkshop"
-	echo " -wa, --workshop-add [MAP_ID] добавляет ресурс из SteamWorkshop по URL или"
-	echo "                            WorkshopID"
-	echo " -wd, --workshop-del [MAP_ID] удаляет ресурс SteamWorkshop по URL или WorkshopID"
-	echo " -ws, --workshop-sync       синхронизирует списки сторонних карт в"
-	echo "                            конфигурационных файлах с имеющимися файлами"
-	echo "                            сторонних карт; синхронизирует списки карт из"
-	echo "                            SteamWorkshop между всеми экземплярами серверов"
-	echo "-mrs, --map-rotate-save [INSTANCE] сохраняет текущий порядок карт для"
-	echo "                            указанного ЭКЗЕМПЛЯРА сервера; если ЭКЗЕМПЛЯР"
-	echo "                            не указан, сохраняет порядок для всех ЭКЗЕМПЛЯРОВ"
-	echo "-mrl, --map-rotate-load [INSTANCE] применяет ранее сохраненный порядок карт"
-	echo "                            для указанного ЭКЗЕМПЛЯРА сервера; если ЭКЗЕМПЛЯР"
-	echo "                            не указан, применяет сохраненные порядки для"
-	echo "                            всех ЭКЗЕМПЛЯРОВ сервера"
-	echo " -bl, --ban-list            отображает список заблокированных пользователей"
-	echo " -bs, --ban-sync            синхронизирует список заблокированных"
-	echo "                            пользователей между всеми экземплярами сервера"
-	echo " -ba, --ban-add    [BAN_ID] добавляет пользователя в список заблокированных"
-	echo "                            допустимо использовать ID3, SteamID, а также"
-	echo "                            ссылку на профиль пользователя"
-	echo " -bd, --ban-del    [BAN_ID] удаляет пользователя из списка заблокированных"
-	echo "                            допустимо использовать ID3, SteamID, а также"
-	echo "                            ссылку на профиль пользователя"
-	echo " -fp, --fix-permissions [INSTANCE] поправить права на ini файлы"
-	echo " -as, --admin-sync          синхронизировать всех админов (заглушка)"
-	echo " -pg, --password-game PASSWORD [INSTANCE] установить пароль игры для экземпляров"
-	echo " -pa, --password-admin PASSWORD [INSTANCE] установить пароль админа для экземпляров"
-	echo "  -h, --help                display this help and exit"
-}
-
-# Use this function with non-root user only!!!
-function run_as_root () # $*: Args
-{
-	if [[ -n "$BetaPostfix" ]]; then
-		BetaPostfix="beta"
-	fi
-        
-	if [[ -n $(groups "$USER" | grep -Fo 'wheel') ]]; then
-		sudo "$ScriptFullname" $BetaPostfix $*
-	else
-		echo "You must be root or sudo-user to run this command."
-		return 1
-	fi
-}
-
-function service_name () # $*: Instance[s]
-{
-	local Services=""
-	for Instance in $*
+	echo "Usage: ${ScriptName}${KF2POSTFIX} <group> <command> [<args>]"
+	echo ""
+	for Group in $(groups_list)
 	do
-		Services+=" kf2-srv$BetaPostfix@$Instance.service"
+		group_info "$Group"
+		echo ""
 	done
-	echo "$Services"
+	echo "Use --help as an argument for information on a specific group or command"
 }
 
-function show_instances ()
-{
-	find "$InstanceConfigDir" -maxdepth 1 -mindepth 1 -type d -printf "%f\n"
-}
+include "$LibDir/globals.lib"
 
-function show_enabled_instances ()
-{
-	local EnabledInstances=""
-	for Instance in $(show_instances)
-	do
-		if systemctl -q is-enabled $(service_name "$Instance") ; then
-			EnabledInstances+=" $Instance"
-		fi
-	done
-	echo "$EnabledInstances"
-}
+Group="$1"
+Command="$2"
 
-function instance_exists () # $1: Instance
-{
-	if [[ -d "$InstanceConfigDir/$1" ]]; then
-		return 0
-	else
-		return 1
-	fi
-}
+GroupPathname="$GrpDir/$Group"
+CommandPathName="$GroupPathname/$Command"
 
-function server_exists ()
-{
-	if [[ -x "$AppBin" ]]; then
-		return 0
-	else
-		return 1
-	fi
-}
-
-function updates_aviable ()
-{
-	return 0 # steamcmd does not show updates even if they are :(
-	# TODO: check updates correctly (but how?)
-	if [[ -n "$BetaPostfix" ]]; then
-		local BetaArg="-beta preview"
-	fi
-	if steamcmd +login anonymous \
-				+force_install_dir $InstallDir \
-				+app_info_update 1 \
-				+app_status $AppServerNum $BetaArg \
-				+quit | \
-				grep 'install state:' | \
-				grep -qiF 'Update Required'; then
-		return 0
-	else
-		return 1
-	fi
-}
-
-function new_instance () # $*: InstanceName[s]
-{
-	if [[ -z "$*" ]]; then
-		echo "Name of instance[s] must be set"
-		exit 1
-	elif ! server_exists; then
-		echo "You must install server first"
-		echo "Run \"$ScriptName --update\" to install it"
-		exit 1
-	fi
-	
-	local MaxGamePort='7777'
-	local MaxQueryPort='27015'
-	local MaxWebAdminPort='8080'
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/instance.conf"
-		local GamePort=$(multini --get "$Config" '' 'PortGame')
-		local WebAdminPort=$(multini --get "$Config" '' 'PortWeb')
-		local QueryPort=$(multini --get "$Config" '' 'PortQuery')
-		if [[ "$GamePort" -gt "$MaxGamePort" ]]; then MaxGamePort="$GamePort"; fi
-		if [[ "$QueryPort" -gt "$MaxQueryPort" ]]; then MaxQueryPort="$QueryPort"; fi
-		if [[ "$WebAdminPort" -gt "$MaxWebAdminPort" ]]; then MaxWebAdminPort="$WebAdminPort"; fi
-	done
-	
-	for Instance in $*
-	do
-		if instance_exists "$Instance"; then
-			echo "Instance $Instance already exists - skip"
-			continue
-		fi
-
-		local InstanceDir="$InstanceConfigDir/$Instance"
-		
-		local DirMode="-d -g $SteamUser -o $ForceIniGroup -m 775"
-		local FileMode="  -g $SteamUser -o $ForceIniGroup -m $ForceIniPermissions"
-		
-		install $DirMode "$InstanceDir"
-		install $DirMode "$InstanceDir/LinuxServer"
-
-		install $FileMode "$InstanceConfigTemplate"                                     "$InstanceDir/instance.conf"
-		install $FileMode "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/KFWebAdmin.ini"                            "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/KFMultiAdmin.ini"                          "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir"
-		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer"
-		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer"
-		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
-		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
-		
-		((MaxGamePort++)); ((MaxQueryPort++)); ((MaxWebAdminPort++))
-		
-		multini -s "$InstanceDir/instance.conf" '' 'PortGame'  "$MaxGamePort"
-		multini -s "$InstanceDir/instance.conf" '' 'PortQuery' "$MaxQueryPort"
-		multini -s "$InstanceDir/instance.conf" '' 'PortWeb'   "$MaxWebAdminPort"
-		
-		multini -s "$InstanceDir/KFWeb.ini"                "IpDrv.WebServer"   "bEnabled"            "true"
-		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "PurgeLogsDays"       "0"
-		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "LogTimes"            "False"
-		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
-		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "bHttpAuth"           "True"
-		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "Filename"            "$Instance-chat"
-		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
-
-		echo "Instance $Instance created. See /etc/$ScriptName/instances$BetaPostfix/$Instance for edit configuration"
-	done
-}
-
-function delete_instance () # $*: [InstanceName[s]]
-{
-	if [[ -z "$*" ]]; then
-		echo "Are you sure you want to delete all instances? [y/N]"
-		local Answ="N"
-		read Answ
-		if [[ "$Answ" == "y" || "$Answ" == "Y" ]]; then
-			for Instance in $(show_instances)
-			do
-				stop_instance "$Instance"
-				delete_instance "$Instance"
-			done
-		fi
-	else
-		for Instance in $*
-		do 
-			if instance_exists "$Instance"; then
-				local InstanceDir="$InstanceConfigDir/$Instance"
-				stop_instance "$Instance"
-				rm -rf "$InstanceDir"
-				echo "Instance $Instance removed"
-			else
-				echo "Instance $Instance not exists"
-			fi
-		done
-	fi
-}
-
-function instance_status () # $1: InstanceName
-{
-	local Instance="$1"
-	if ! instance_exists "$Instance"; then return 1; fi
-	if systemctl -q is-enabled $(service_name "$Instance"); then
-		local IsEnabled="enabled"
-	else
-		local IsEnabled="disabled"
-	fi
-	if systemctl | grep $(service_name "$Instance") | grep -q 'running' ; then
-		local IsRuning="running"
-	else
-		local IsRuning="stopped"
-	fi
-	local Comment=$(        multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Comment")
-	local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortGame")
-	local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortWeb")
-	local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortQuery")
-	local GameType=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Game")
-	local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Length")
-	local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Difficulty")
-	local Map=$(            multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Map")
-	local Mutators=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Mutators")
-	local Args=$(           multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Args")
-	
-	local DisplayGameType=''
-	local DisplayGameLength=''
-	local DisplayDifficulty=''
-	local DisplayMutators=''
-	
-	for Mutator in ${Mutators//,/ }
-	do
-		local MutName=${MutNames[$Mutator]}
-		if [[ -z "$MutName" ]]; then
-			MutName="$Mutator"
-		fi
-		if [[ -z "$DisplayMutators" ]]; then
-			DisplayMutators="$MutName"
-		else
-			DisplayMutators="$DisplayMutators, $MutName"
-		fi
-	done
-	
-	if [[ -n "$GameType"       ]]; then DisplayGameType=${ModeNames[$GameType]}         ; fi
-	if [[ -n "$GameLength"     ]]; then DisplayGameLength=${WaveNames[$GameLength]}     ; fi
-	if [[ -n "$GameDifficulty" ]]; then DisplayDifficulty=${DiffNames[$GameDifficulty]} ; fi
-	
-	if [[ -z "$DisplayMutators" ]] && [[ -z "$Mutators" ]]; then
-		DisplayMutators='-'
-	fi
-	
-	if [[ -z "$DisplayGameType" ]]; then
-		DisplayGameType="$GameType"
-	fi
-	
-	if [[ -z "$Args" ]]; then
-		Args='-'
-	fi
-	
-	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival'  || \
-		  "$GameType" == 'KFGameContent.KFGameInfo_Endless' || \
-		  "$GameType" == 'KFGameContent.KFGameInfo_VersusSurvival'  || \
-		  "$GameType" == 'KFGameContent.KFGameInfo_Objective' ]]; then
-		DisplayGameLength='-'
-	fi
-	
-	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival' || \
-		  "$DisplayGameType" == 'KFGameContent.KFGameInfo_VersusSurvival' ]]; then
-		DisplayDifficulty='-'
-	fi
-	
-	echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$DisplayGameType:$DisplayGameLength:$DisplayDifficulty:$DisplayMutators:$Args:$Comment"
-}
-
-function show_status () # $*: [InstanceName[s]]
-{
-	{
-		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:TYPE:LEN:DIFF:MUTATORS:ARGS:COMMENT"
-		{
-			local InstanceList="$*"
-			if [[ -z "$*" ]] ; then
-				InstanceList=$(show_instances)
-			fi
-			for Instance in $InstanceList
-			do
-				instance_status "$Instance"
-			done
-		} | sort -t : -k 4
-	} | column -t -s :
-}
-
-function validate ()
-{
-	if [[ -n "$BetaPostfix" ]]; then
-		local BetaArg="-beta preview"
-	fi
-	stop_instance
-	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
-	fix_steamclient_so
-	start_instance
-}
-
-function make_default_instance () # $1: Dir
-{
-	local InstanceDir="$InstanceConfigDir/default"
-	
-	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir"
-	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir/LinuxServer"
-	install    -g "$SteamUser" -o "$ForceIniGroup" -m $ForceIniPermissions  "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
-	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
-	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
-	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"
-	ln -s "$DefaultConfigDir/KFMultiAdmin.ini"                              "$InstanceDir/KFMultiAdmin.ini"
-	ln -s "$DefaultConfigDir/LinuxServer-KFEngine.ini"                      "$InstanceDir/LinuxServer-KFEngine.ini"
-	ln -s "$DefaultConfigDir/LinuxServer-KFGame.ini"                        "$InstanceDir/LinuxServer-KFGame.ini"
-	ln -s "$DefaultConfigDir/LinuxServer-KFInput.ini"                       "$InstanceDir/LinuxServer-KFInput.ini"
-	ln -s "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"              "$InstanceDir/LinuxServer-KFSystemSettings.ini"
-	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"             "$InstanceDir/LinuxServer/LinuxServerEngine.ini"
-	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"               "$InstanceDir/LinuxServer/LinuxServerGame.ini"
-	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"              "$InstanceDir/LinuxServer/LinuxServerInput.ini"
-	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini"     "$InstanceDir/LinuxServer/LinuxServerSystemSettings.ini"
-	
-	fix_ini_permissions "$InstanceDir"
-	fix_ini_eol "$InstanceDir"
-}
-
-function fix_permissions () # $*: Instance[s]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		fix_ini_permissions "$InstanceConfigDir"
-	else
-		for Instance in $InstanceList
-		do
-			fix_ini_permissions "$InstanceConfigDir/$Instance"
-		done
-	fi
-}
-
-function fix_ini_permissions () # $1: Dir
-{
-	find "$1" \( -type l -o -type f \) -name '*.ini' | \
-	xargs --max-procs=$(nproc) -I {}  \
-	sh -c "chmod $ForceIniPermissions {}; chown $SteamUser:$ForceIniGroup {}"
-}
-
-function fix_ini_eol () # $1: Dir
-{
-	find "$1" \( -type l -o -type f \) -name '*.ini' | \
-	xargs --max-procs=$(nproc) -I {}  \
-	sh -c "dos2unix -F {}"
-}
-
-function fix_steamclient_so ()
-{
-	rm -f "$InstallDir/linux64/steamclient.so"
-	rm -f "$InstallDir/steamclient.so"
-	rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
-}
-
-function create_cache () 
-{
-	if [[ -d "$DownloadDir" ]]; then
-		if ! [[ -L "$DefaultDownloadDir" ]]; then
-			if [[ -d "$DefaultDownloadDir" ]]; then
-				rm -rf "$DefaultDownloadDir" "$DownloadDir"
-				ln -s "$DownloadDir" "$DefaultDownloadDir"
-			else
-				install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
-				ln -s "$DownloadDir" "$DefaultDownloadDir"
-			fi
-		fi
-	else
-		if [[ -L "$DefaultDownloadDir" ]]; then
-			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
-		elif [[ -d "$DefaultDownloadDir" ]]; then
-			mv -f "$DefaultDownloadDir" "$DownloadDir"
-			ln -s "$DownloadDir" "$DefaultDownloadDir"
-		else
-			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
-			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
-			ln -s "$DownloadDir" "$DefaultDownloadDir"
-		fi
-	fi
-	
-	if ! [[ -d "$CacheDir" ]]; then
-		install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$CacheDir"
-	fi
-	if ! [[ -L "$DefaultCacheDir" ]]; then
-		ln -s "$CacheDir" "$DefaultCacheDir"
-	fi
-}
-
-function first_install ()
-{
-	if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
-		echo "Errors during installation - exit"
-		exit 1
-	fi
-	
-	rm -rf "$DefaultLogDir"
-	ln -s "$LogDir" "$DefaultLogDir"
-	
-	echo "Creating base ini files"
-	sudo -u "$SteamUser" $AppBin &> /dev/null &
-	while true
-	do
-		if [[ -e "$DefaultConfigDir/KFAI.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/KFWeb.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer-KFEngine.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer-KFGame.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer-KFInput.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini" ]] &&
-		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" ]]; then
-		   	break
-		fi
-		sleep 2
-	done
-	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
-	echo "Setting up WebAdmin"
-	multini -s "$DefaultConfigDir/KFWeb.ini" "IpDrv.WebServer" "bEnabled" "true"
-	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "PurgeLogsDays" "0"
-	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "LogTimes" "False"
-	
-	sudo -u "$SteamUser" $AppBin &> /dev/null &
-	while true
-	do
-		if [[ -e "$DefaultConfigDir/KFWebAdmin.ini" ]]; then
-		   	break
-		fi
-		sleep 2
-	done
-	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bHttpAuth"           "True"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bChatLog"            "True"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "Filename"            "default-chat"
-	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
-	
-	echo "Wait while WebAdmin up"
-	sudo -u "$SteamUser" $AppBin &> /dev/null &
-	while ! curl -s -o "/dev/null" -u "Admin:Admin" "localhost:8080"
-	do
-		sleep 2
-	done
-	echo "Setting up server bot"
-	
-	while !	curl -s -o "/dev/null" \
-		-u "Admin:Admin" \
-		"localhost:8080/ServerAdmin/multiadmin" \
-		--request POST \
-		--data adminid="$ServerBotLogin" \
-		--data action="create" 
-	do sleep 2;	done
-	
-	while ! multini -gq \
-		"$DefaultConfigDir/KFMultiAdmin.ini" \
-		"$ServerBotLogin MultiAdminData" \
-		"Password"
-	do sleep 2; done
-	
-	while ! curl -s -o "/dev/null" \
-		-u "Admin:Admin" \
-		"localhost:8080/ServerAdmin/multiadmin" \
-		--request POST \
-		--data adminid="$ServerBotLogin" \
-		--data displayname="ServerBot" \
-		--data enabled=1 \
-		--data password1="$ServerBotPassword" \
-		--data password2="$ServerBotPassword" \
-		--data order="DenyAllow" \
-		--data deny= \
-		--data allow= \
-		--data action="save"
-	do sleep 2; done
-	
-	while [[ -z $(multini -g \
-		"$DefaultConfigDir/KFMultiAdmin.ini" \
-		"$ServerBotLogin MultiAdminData" \
-		"Password") ]]
-	do sleep 2; done
-	
-	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
-	create_cache
-	fix_steamclient_so
-	ln -s "$InstanceConfigDir" "$DefaultConfigDir/instances"
-	make_default_instance
-	echo "KF2 succesfully installed"
-}
-
-function update_kf2 ()
-{
-	if [[ -n "$BetaPostfix" ]]; then
-		local BetaArg="-beta preview"
-	fi
-	if ! server_exists; then
-		first_install
-	elif updates_aviable; then
-		stop_instance
-		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
-		start_instance
-	else
-		echo "Server is up to date"
-	fi
-}
-
-function start_instance () # $*: [InstanceName[s]]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_enabled_instances)
-	fi
-	
-	local InactiveServiceList=""
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			local Service=$(service_name "$Instance")
-			if systemctl -q is-active $Service ; then
-				echo "Instance $Instance already running - skip"
-			else
-				InactiveServiceList+=" $Service"
-			fi
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-	
-	if [[ -n "$InactiveServiceList" ]]; then
-		systemctl start $InactiveServiceList
-	else
-		echo "Nothing to do"
-	fi
-}
-
-function stop_instance () # $*: [InstanceName[s]]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	local ToStopInstanceList=""
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			ToStopInstanceList+=" $Instance"
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-	
-	if [[ -n "$ToStopInstanceList" ]]; then
-		systemctl stop $(service_name "$ToStopInstanceList")
-	else
-		echo "Nothing to do"
-	fi
-}
-
-function restart_instance () # $*: [InstanceName[s]]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_enabled_instances)
-	fi
-	
-	local ToRestartInstancesList=""
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			ToRestartInstancesList+=" $Instance"
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-	
-	if [[ -n "$ToRestartInstancesList" ]]; then
-		systemctl restart $(service_name "$ToRestartInstancesList")
-	else
-		echo "Nothing to do"
-	fi
-}
-
-function enable_instance () # $1*: [InstanceName[s]]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	local ToEnableInstanceList=""
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			ToEnableInstanceList+=" $Instance"
-		else
-			echo "Instance $Instance not exist"
-		fi
-	done
-	
-	if [[ -n "$ToEnableInstanceList" ]]; then
-		systemctl enable $(service_name "$ToEnableInstanceList")
-	else
-		echo "Nothing to do"
-	fi
-}
-
-function disable_instance () # $*: [InstanceName[s]]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	local ToDisableInstanceList=""
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			ToDisableInstanceList+=" $Instance"
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-	
-	if [[ -n "$ToDisableInstanceList" ]]; then
-		systemctl disable $(service_name "$ToDisableInstanceList")
-	else
-		echo "Nothing to do"
-	fi
-}
-
-function run ()
-{
-	if [[ "$USER" == "$SteamUser" ]]; then
-		"$AppBin" $*
-	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
-		sudo -u "$SteamUser" "$AppBin" $*
-	else
-		echo "You must be a $SteamUser, root or sudo-user to run this command."
-	fi
-}
-
-function name_by_workshopID () # $1: WorkshopID
-{
-	local WorkshopID="$1"
-	local Cache="$CacheDir/$WorkshopID"
-	local Result=""
-	if [[ -d "$Cache" ]]; then
-		Result=$(find "$Cache" -type f -name '*.kfm' -printf '%f\n' | head -n 1)
-		if [[ -z "$Result" ]]; then
-			Result=$(find "$Cache" -type f -name '*.u' -printf '%f\n' | head -n 1)
-		fi
-	fi
-	echo "$Result"
-}
-
-function workshop_list_ids ()
-{
-	local WsList=''
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-		if multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems"; then
-			if [[ -n "$WsList" ]]; then
-				WsList+=$'\n'
-			fi
-			WsList+=$(multini -g "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems")
-		fi
-	done
-	echo "$WsList" | sort -V -u
-}
-
-function workshop_list ()
-{
-	# TODO: Multiple *.kfm/*u in folder
-	{
-		echo "WORKSHOP_ID NAME SIZE WORKSHOP_URL"
-		{
-			for WorkshopID in $(workshop_list_ids)
-			do
-				local Cache="$CacheDir/$WorkshopID"
-				local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
-				local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
-				local WsName=$(name_by_workshopID "$WorkshopID")
-				if [[ -n "$WsName" ]]; then
-					local WsSize=$(du -sch "$Downl" "$Cache" | tail -n 1 | grep -Po '^[^\s]+')
-				else
-					local WsSize="-"; WsName="-"
-				fi
-				echo "$WorkshopID $WsName $WsSize $Url"
-			done
-		} | sort -k 2
-	} | column -t
-}
-
-function any_to_workshopID () # $1: WorkshopID/URL
-{
-	if echo "$1" | grep -qP '^http.+'; then
-		local WorkshopID=$(echo "$1" | sed -r 's/.+=([0-9]+)$/\1/') 
-	else
-		local WorkshopID="$1"
-	fi
-	echo "$WorkshopID"
-}
-
-function workshop_add () # $*: WorkshopID[s]
-{
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-		multini -ar "$Config" "IpDrv.TcpNetDriver" "DownloadManagers" "OnlineSubsystemSteamworks.SteamWorkshopDownload"
-		for Map in $*
-		do
-			local WorkshopID=$(any_to_workshopID "$Map")
-			if ! multini -gq "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"; then
-				echo "Add workshop $WorkshopID to $Instance"
-				multini -ar "$Config" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
-			fi
-		done
-	done
-}
-
-function workshop_del () # $*: WorkshopID[s]
-{
-	for Map in $*
-	do
-		local WorkshopID=$(any_to_workshopID "$Map")
-		local WsName=$(name_by_workshopID "$WorkshopID")
-		local Cache="$CacheDir/$WorkshopID"
-		local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
-		echo -e "Clear cache:\n$Cache\n$Downl"
-		rm -rf "$Cache" "$Downl"
-		for Instance in $(show_instances)
-		do
-			local ConfigEngine="$InstanceConfigDir/$Instance/LinuxServer-KFEngine.ini"
-			multini -d "$ConfigEngine" "OnlineSubsystemSteamworks.KFWorkshopSteamworks" "ServerSubscribedWorkshopItems" "$WorkshopID"
-			if echo "$WsName" | grep -qP '\.kfm$' ; then
-				echo "Remove map $WorkshopID ($WsName) from $Instance"
-				local WsNameShort=$(echo "$WsName" | sed 's/\.kfm$//')
-				local ConfigGame="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-				multini -d "$ConfigGame" "$WsNameShort KFMapSummary"
-			fi
-		done 
-	done
-}
-
-function workshop_sync ()
-{
-	workshop_add $(workshop_list_ids)
-	
-	# TODO: Make it faster
-	for Instance in $(show_instances)
-	do
-		local Service=$(service_name "$Instance")
-		if ! instance_exists "$Instance"; then
-			echo "Instance $Instance not exitst"
-		elif systemctl -q is-active $Service ; then
-			echo "Instance $Instance is running - skip."
-		else
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			for MapFile in $(find -L "$CacheDir" -type f -name '*.kfm' -printf "%f\n")
-			do
-				MapName=$(echo "$MapFile" | sed -r 's|.kfm$||')
-				if ! multini -gq "$Config" "$MapName KFMapSummary"; then
-					echo "Adding $MapName to $Instance."
-					multini -s "$Config" "$MapName KFMapSummary" "MapName" "$MapName"
-					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInSurvival"   "True"
-					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInWeekly"     "True"
-					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInVsSurvival" "True"
-					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInEndless"    "True"
-					multini -s "$Config" "$MapName KFMapSummary" "bPlayableInObjective"  "False"
-				fi
-			done
-			
-			for MutFile in $(find -L "$CacheDir" -type f -name '*.u' -printf "%f\n")
-			do
-				MutName=$(echo "$MutFile" | sed -r 's|.u$||')
-				if ! multini -gq "$Config" "$MutName KFMutatorSummary"; then
-					echo "Adding $MutName to $Instance."
-					multini -s "$Config" "$MutName KFMutatorSummary" "ClassName" ""
-				fi
-			done
-		fi
-	done
-}
-
-function map_rotate_save () # $*: Instance[s]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			local MapRotate="$InstanceConfigDir/$Instance/MapRotate.ini"
-			grep -F 'ActiveMapCycle=' "$Config" > "$MapRotate"
-			grep -F 'GameMapCycles=' "$Config" >> "$MapRotate"
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-}
-
-function map_rotate_to_webstring () # $1: MapRotate
-{
-	local RN='%0D%0A'
-	echo "$1" | \
-	sed -r 's/^\(Maps=\("//' | \
-	sed -r 's/"\)\)$//' | \
-	sed 's/ /+/g' | \
-	sed "s/\",\"/${RN}/g"
-}
-
-function map_rotate_load () # $*: Instance[s]
-{
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	for Instance in $InstanceList
-	do
-		local Service=$(service_name "$Instance")
-		local MapRotate="$InstanceConfigDir/$Instance/MapRotate.ini"
-		if ! instance_exists "$Instance"; then	
-			echo "Instance $Instance not exists"
-		elif ! [[ -e "$MapRotate" ]]; then
-			echo "$MapRotate not found - skip"
-		elif systemctl -q is-active $Service ; then
-			# TODO: Delete other cycles
-			# Example: maplistidx=1&mapcycle=KF-Airship%0D%0A&delete=doit
-			local ActiveCycleIndex=$(multini -g "$MapRotate" '' 'ActiveMapCycle')
-			local ActiveCycleWeb=''
-			local Index=0
-			while read MapCycle
-			do
-				local MapCycleWeb=$(map_rotate_to_webstring "$MapCycle")
-				admin_curl "$Instance" "ServerAdmin/settings/maplist"  \
-				--request POST                                         \
-				--data maplistidx="$Index"                             \
-				--data mapcycle="$MapCycleWeb"                         \
-				--data action="save"
-				if [[ "$Index" -eq "$ActiveCycleIndex" ]]; then
-					ActiveCycleWeb="$MapCycleWeb"
-				fi
-				((Index++))
-			done < <(multini -g "$MapRotate" '' 'GameMapCycles')
-			if [[ -n "$ActiveCycleWeb" ]]; then
-				admin_curl "$Instance" "ServerAdmin/settings/maplist"  \
-				--request POST                                         \
-				--data maplistidx="$ActiveCycleIndex"                  \
-				--data mapcycle="$ActiveCycleWeb"                      \
-				--data activate="activate"
-			fi
-		else
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			sed -i --follow-symlinks -r "/(ActiveMapCycle=|GameMapCycles=)/d" "$Config"
-			sed -i --follow-symlinks "/\[KFGame\.KFGameInfo\]/ r $MapRotate" "$Config"
-		fi
-	done
-}
-
-# conversion algorithm taken from here:
-# https://github.com/noobient/killinuxfloor/blob/master/share/killinuxfloor
-# thank bviktor for that :)
-function steamID3_to_steamID64 () # $1: ID3
-{
-    # steamID64 = "7656" + (steamID3 + 1197960265728)
-    ID64=$1
-    ((ID64+=1197960265728))
-    ID64="7656${ID64}"
-    echo "$ID64"
-}
-
-function steamID64_to_steamID3 () # $1: ID4
-{
-    # steamID3 = substr(steamID64, 4) - 1197960265728
-    ID3=${1:4}
-    ((ID3-=1197960265728))
-    echo "$ID3"
-}
-
-function ban_list_id3 ()
-{
-	local BanList=''
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		if multini -gq "$Config" "Engine.AccessControl" "BannedIDs"; then
-			if [[ -n "$BanList" ]]; then
-				BanList+=$'\n'
-			fi
-			BanList+=$(multini -g "$Config" "Engine.AccessControl" "BannedIDs" | sed -r 's/.+A=([0-9]+),.+/\1/')
-		fi
-	done
-	echo "$BanList" | sort -V -u
-}
-
-function ban_list () # $1: [--human-readable]
-{
-	{
-		local Num=1
-		echo "NUM STEAM_ID3 STEAM_ID64 URL_CONST URL_EFFECTIVE"
-		for ID3 in $(ban_list_id3)
-		do
-			local ID64=$(steamID3_to_steamID64 "$ID3")
-			local UrlConst="https://steamcommunity.com/profiles/$ID64"
-			local UrlEffective=$(curl "$UrlConst" -s -L -I -o /dev/null -w '%{url_effective}')
-			if [[ "$UrlConst" == "$UrlEffective" ]]; then
-				UrlEffective="-"
-			fi
-			echo "$Num $ID3 $ID64 $UrlConst $UrlEffective"
-			((Num++))
-		done
-	} | column -t
-}
-
-function ban_ID3 () # $1: ID3
-{
-	ID3="$1"
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
-		local Service=$(service_name "$Instance")
-		if ! multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
-			echo "Add ban $ID3 to $Instance"
-			if systemctl -q is-active $Service ; then
-				admin_curl "$Instance" "ServerAdmin/policy/bans"    \
-					--request POST                                  \
-					--data action="add"                             \
-					--data steamint64=$(steamID3_to_steamID64 $ID3) \
-					--data uniqueid=
-			else
-				multini -a "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
-			fi
-		fi
-	done 
-}
-
-function unban_ID3 () # $1: ID3
-{
-	ID3="$1"
-	for Instance in $(show_instances)
-	do
-		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
-		local Service=$(service_name "$Instance")
-		if systemctl -q is-active $Service ; then
-			local PlainID=0
-			while read Line
-			do
-				if echo "$Line" | grep -qF "A=$ID3,"; then
-					echo "Remove ban $ID3 from $Instance"
-					admin_curl "$Instance" "ServerAdmin/policy/bans"    \
-						--request POST                                  \
-						--data action="delete"                          \
-						--data banid="plainid:$PlainID"
-					break
-				else
-					((PlainID++))
-				fi
-			done < <(multini -g "$Config" 'Engine.AccessControl' 'BannedIDs')
-		else
-			if multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
-				echo "Remove ban $ID3 from $Instance"
-				multini -d "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"
-			fi
-		fi
-	done 
-}
-
-function any_to_ID3 () # $1: ID3/ID64/Url
-{
-	if echo "$1" | grep -qP '^http.+'; then
-		local Xml=$(mktemp)
-		curl -ss "$1/?xml=1" > "$Xml"
-		local ID64=$(xmllint --xpath 'string(//steamID64/text())' "$Xml")
-		local ID3=$(steamID64_to_steamID3 "$ID64") 
-		rm -f "$Xml"
-	elif [[ $(echo "$1" | wc -m) -eq 18 ]] && echo "$1" | grep -qP '^76561[0-9]+' ; then
-		local ID3=$(steamID64_to_steamID3 "$1")
-	else
-		local ID3="$1"
-	fi
-	echo "$ID3"
-}
-
-function ban_add () # $*: ban list
-{
-	if [[ -z "$*" ]]; then
-		echo "Nothing to do"
-		exit 1
-	fi
-	
-	for Ban in $*
-	do
-		ban_ID3 $(any_to_ID3 "$Ban")
-	done
-}
-
-function ban_del () # $*: ban list
-{
-	if [[ -z "$*" ]]; then
-		echo "Nothing to do"
-		exit 1
-	fi
-	
-	for Ban in $*
-	do
-		unban_ID3 $(any_to_ID3 "$Ban")
-	done
-}
-
-function ban_sync ()
-{
-	ban_list_id3 | \
-	while read ID3
-	do
-		ban_ID3 "$ID3"
-	done
-}
-
-function admin_sync ()
-{
-	# TODO: Implementation
-	echo "Dummy"
-}
-
-function admin_curl () # $1: Instance, $2: URL, $*: Request
-{
-	local Instance="$1"
-	local URL="$2"
-	local InstanceConf="$InstanceConfigDir/$Instance/instance.conf"
-	local WebPort=$(multini --get "$InstanceConf" '' "PortWeb")
-	shift; shift
-	curl -s -o "/dev/null" -u "$ServerBotLogin:$ServerBotPassword" "localhost:$WebPort/$URL" $*
-}
-
-function password_game () # $1: Password (if empty, use: ''), $*: Instance[s]
-{
-	if echo "$1" | grep -qP '\s'; then
-		echo "Password should not contain spaces"
-		return 1
-	fi
-	
-	local Password="$1"; shift
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then	
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			local Service=$(service_name "$Instance")
-			if systemctl -q is-active $Service ; then
-				admin_curl "$Instance" "ServerAdmin/policy/passwords" \
-				--request POST               \
-				--data action="gamepassword" \
-				--data gamepw1="$Password"   \
-				--data gamepw2="$Password"
-			else
-				multini -s "$Config" "Engine.AccessControl" "GamePassword" "$Password"
-			fi
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-}
-
-function password_admin () # $1: Password (if empty, use: ''), $*: Instance[s]
-{
-	if echo "$1" | grep -qP '\s'; then
-		echo "Password should not contain spaces"
-		return 1
-	fi
-	
-	local Password="$1"; shift
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then	
-			local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-			local Service=$(service_name "$Instance")
-			if systemctl -q is-active $Service ; then
-				admin_curl "$Instance" "ServerAdmin/policy/passwords" \
-				--request POST                \
-				--data action="adminpassword" \
-				--data adminpw1="$Password"   \
-				--data adminpw2="$Password"
-			else
-				multini -s "$Config" "Engine.AccessControl" "AdminPassword" "$Password"
-			fi
-		else
-			echo "Instance $Instance not exitst"
-		fi
-	done
-}
-
-function chat ()
-{
-	local Message=$(echo "$1" | sed 's/ /+/g')
+if [[ $# -eq 0 ]] || is_help "$1"; then
+	full_info
+	exit 0
+elif is_version "$1"; then
+	echo "${ScriptName}${KF2POSTFIX} v${ScriptVersion}"
+	exit 0
+elif [[ -d "$GroupPathname" ]]; then
 	shift
-	local InstanceList="$*"
-	if [[ -z "$InstanceList" ]] ; then
-		InstanceList=$(show_instances)
-	fi
-	
-	for Instance in $InstanceList
-	do
-		if instance_exists "$Instance"; then	
-			local Service=$(service_name "$Instance")
-			if systemctl -q is-active $Service ; then
-				admin_curl "$Instance" "ServerAdmin/current/chat+frame+data" \
-				--request POST            \
-				--data ajax=1             \
-				--data message="$Message" \
-				--data teamsay=-1
+	if [[ $# -eq 0 ]] || is_help "$1"; then
+		group_info "$Group"
+		exit 0
+	elif [[ -r "$CommandPathName" ]]; then
+		shift
+		source "$CommandPathName"
+		if is_help "$1"; then
+			if function_exists "cmd_help"; then
+				cmd_help
 			else
-				echo "Instance $Instance not running - skip"
+				echo "No help page for this command."
 			fi
 		else
-			echo "Instance $Instance not exitst"
+			if function_exists "cmd_main"; then
+				cmd_main "$@"
+			else
+				echo "No implementation for the command $Command"
+			fi
 		fi
-	done
-}
-
-if [[ "$1" == "beta" ]]; then
-	BetaPostfix="-beta"; shift
+	else
+		echo "Command not found: $Command"
+		exit 1
+	fi
+else
+	echo "Command group not found: $Group"
+	exit 1
 fi
 
-InstallDir=":DEFINE_PREFIX:/games/kf2-srv$BetaPostfix"
-AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
-
-DefaultConfigDir="$InstallDir/KFGame/Config"
-DefaultDownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop"
-DefaultCacheDir="$InstallDir/KFGame/Cache"
-DefaultLogDir="$InstallDir/KFGame/Logs"
-
-DownloadDir="/var/cache/kf2-srv/workshop"
-CacheDir="/var/cache/kf2-srv/cache"
-LogDir="/var/log/kf2-srv$BetaPostfix"
-
-InstanceConfigDir="/etc/kf2-srv/instances$BetaPostfix"
-InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
-
-if [[ $# -eq 0 ]]; then show_help; exit 0; fi
-case $1 in
-	  -h|--help            )                                     show_help;                                   ;;
-	  -n|--new             ) if [[ "$EUID" -eq 0 ]]; then shift; new_instance     $*; else run_as_root $*; fi ;;
-	  -d|--delete          ) if [[ "$EUID" -eq 0 ]]; then shift; delete_instance  $*; else run_as_root $*; fi ;;
-	  -s|--status          )                              shift; show_status      $*;                         ;;
-	  -u|--update          ) if [[ "$EUID" -eq 0 ]]; then        update_kf2         ; else run_as_root $*; fi ;;
-	  -v|--validate        ) if [[ "$EUID" -eq 0 ]]; then        validate           ; else run_as_root $*; fi ;;
-	  -r|--run             )                              shift; run              $*;                         ;;
-	  -c|--chat            ) shift; Msg="$1"; shift;             chat "$Msg"      $*;                         ;;
-	 -st|--start           ) if [[ "$EUID" -eq 0 ]]; then shift; start_instance   $*; else run_as_root $*; fi ;;
-	 -sp|--stop            ) if [[ "$EUID" -eq 0 ]]; then shift; stop_instance    $*; else run_as_root $*; fi ;;
-	 -rs|--restart         ) if [[ "$EUID" -eq 0 ]]; then shift; restart_instance $*; else run_as_root $*; fi ;;
-	 -en|--enable          ) if [[ "$EUID" -eq 0 ]]; then shift; enable_instance  $*; else run_as_root $*; fi ;;
-	 -di|--disable         ) if [[ "$EUID" -eq 0 ]]; then shift; disable_instance $*; else run_as_root $*; fi ;;
-	 -wl|--workshop-list   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_list      ; else run_as_root $*; fi ;;
-	 -wa|--workshop-add    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_add     $*; else run_as_root $*; fi ;;
-	 -wd|--workshop-del    ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_del     $*; else run_as_root $*; fi ;;
-	 -ws|--workshop-sync   ) if [[ "$EUID" -eq 0 ]]; then shift; workshop_sync      ; else run_as_root $*; fi ;;
-	-mrs|--map-rotate-save ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_save  $*; else run_as_root $*; fi ;;
-	-mrl|--map-rotate-load ) if [[ "$EUID" -eq 0 ]]; then shift; map_rotate_load  $*; else run_as_root $*; fi ;;
-	 -bl|--ban-list        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_list           ; else run_as_root $*; fi ;;
-	 -bs|--ban-sync        ) if [[ "$EUID" -eq 0 ]]; then shift; ban_sync           ; else run_as_root $*; fi ;;
-	 -ba|--ban-add         ) if [[ "$EUID" -eq 0 ]]; then shift; ban_add          $*; else run_as_root $*; fi ;;
-	 -bd|--ban-del         ) if [[ "$EUID" -eq 0 ]]; then shift; ban_del          $*; else run_as_root $*; fi ;;
-	 -fp|--fix-permissions ) if [[ "$EUID" -eq 0 ]]; then shift; fix_permissions  $*; else run_as_root $*; fi ;;
-	 -as|--admin-sync      ) if [[ "$EUID" -eq 0 ]]; then shift; admin_sync         ; else run_as_root $*; fi ;;
-	 -pg|--password-game   ) if [[ "$EUID" -eq 0 ]]; then shift; Pass="$1"; shift   ; password_game  "$Pass" $*; else run_as_root $*; fi ;;
-	 -pa|--password-admin  ) if [[ "$EUID" -eq 0 ]]; then shift; Pass="$1"; shift   ; password_admin "$Pass" $*; else run_as_root $*; fi ;;
-	    *                  ) echo "Command not recognized: $1"; exit 1                                        ;;
-esac

@@ -19,6 +19,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export KF2POSTFIX="-beta"
-":DEFINE_PREFIX:/bin/kf2-srv" "$@"
+InstallDir=":DEFINE_PREFIX:/games/kf2-srv${KF2POSTFIX}"
+AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+
+DefaultConfigDir="$InstallDir/KFGame/Config"
+DefaultDownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop"
+DefaultCacheDir="$InstallDir/KFGame/Cache"
+DefaultLogDir="$InstallDir/KFGame/Logs"
+
+DownloadDir="/var/cache/kf2-srv/workshop"
+CacheDir="/var/cache/kf2-srv/cache"
+LogDir="/var/log/kf2-srv${KF2POSTFIX}"
+
+InstanceConfigDir="/etc/kf2-srv/instances${KF2POSTFIX}"
+InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
+
+readonly AppServerNum="232130"
+readonly AppClientNum="232090"
+readonly StrangeConstUID="17825793"
+readonly ServerBotLogin="srvbot"
+
+declare -a DiffNames
+declare -a WaveNames
+declare -A ModeNames
+declare -A MutNames
 

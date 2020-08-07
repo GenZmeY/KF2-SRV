@@ -10,6 +10,11 @@ BuildArch:  noarch
 
 Source0:    %{name}-%{version}.tar.gz 
 
+BuildRequires: systemd-rpm-macros
+
+#BuildRequires(check): xmllint
+#BuildRequires(check): systemd >= 219
+
 Requires:   systemd >= 219
 Requires:   steamcmd >= 2018.01.05-5
 Requires:   libxml2
@@ -58,6 +63,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
 %attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
 %attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/cache/kf2-srv
+%attr(0775,root,root)         %dir               %{_datadir}/%{name}
+%attr(0775,root,root)         %dir               %{_datadir}/%{name}/cmdgrp
+%attr(0775,root,root)         %dir               %{_datadir}/%{name}/lib
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/instance.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(0640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/bot.conf
@@ -69,6 +77,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 %attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
 %attr(0644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
+%attr(0644,root,root)                            %{_datadir}/%{name}/cmdgrp/*
+%attr(0644,root,root)                            %{_datadir}/%{name}/lib/*
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall

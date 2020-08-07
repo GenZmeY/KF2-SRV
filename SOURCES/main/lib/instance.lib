@@ -1,0 +1,408 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	
+function show_enabled_instances ()
+{
+	local EnabledInstances=""
+	for Instance in $(show_instances)
+	do
+		if systemctl -q is-enabled $(service_name "$Instance") ; then
+			EnabledInstances+=" $Instance"
+		fi
+	done
+	echo "$EnabledInstances"
+}
+
+function show_instances ()
+{
+	find "$InstanceConfigDir" \
+	-maxdepth 1               \
+	-mindepth 1               \
+	-type d                   \
+	-printf "%f\n"
+}
+
+function service_name () # $*: Instance[s]
+{
+	local Services=""
+	for Instance in $*
+	do
+		Services+=" kf2-srv${KF2POSTFIX}@$Instance.service"
+	done
+	echo "$Services"
+}
+
+function instance_exists () # $1: Instance
+{
+	test -d "$InstanceConfigDir/$1"
+	return $?
+}
+
+function instance_add () # $*: InstanceName[s]
+{
+	include /etc/steamcmd/steamcmd.conf
+	include /etc/kf2-srv/kf2-srv.conf
+	include "$LibDir/game.lib"	
+
+	if [[ -z "$*" ]]; then
+		echo "Name of instance[s] must be set"
+		exit 1
+	elif ! server_exists; then
+		echo "You must install server first"
+		echo "Run \"$ScriptName --update\" to install it"
+		exit 1
+	fi
+	
+	local MaxGamePort='7777'
+	local MaxQueryPort='27015'
+	local MaxWebAdminPort='8080'
+	for Instance in $(show_instances)
+	do
+		local Config="$InstanceConfigDir/$Instance/instance.conf"
+		local GamePort=$(multini --get "$Config" '' 'PortGame')
+		local WebAdminPort=$(multini --get "$Config" '' 'PortWeb')
+		local QueryPort=$(multini --get "$Config" '' 'PortQuery')
+		if [[ "$GamePort" -gt "$MaxGamePort" ]]; then MaxGamePort="$GamePort"; fi
+		if [[ "$QueryPort" -gt "$MaxQueryPort" ]]; then MaxQueryPort="$QueryPort"; fi
+		if [[ "$WebAdminPort" -gt "$MaxWebAdminPort" ]]; then MaxWebAdminPort="$WebAdminPort"; fi
+	done
+	
+	for Instance in $*
+	do
+		if instance_exists "$Instance"; then
+			echo "Instance $Instance already exists - skip"
+			continue
+		fi
+
+		local InstanceDir="$InstanceConfigDir/$Instance"
+		
+		local DirMode="-d -g $SteamUser -o $ForceIniGroup -m 775"
+		local FileMode="  -g $SteamUser -o $ForceIniGroup -m $ForceIniPermissions"
+		
+		install $DirMode "$InstanceDir"
+		install $DirMode "$InstanceDir/LinuxServer"
+
+		install $FileMode "$InstanceConfigTemplate"                                     "$InstanceDir/instance.conf"
+		install $FileMode "$DefaultConfigDir/KFAI.ini"                                  "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/KFWeb.ini"                                 "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/KFWebAdmin.ini"                            "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/KFMultiAdmin.ini"                          "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFEngine.ini"                  "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFGame.ini"                    "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFInput.ini"                   "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"          "$InstanceDir"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"         "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"           "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"          "$InstanceDir/LinuxServer"
+		install $FileMode "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" "$InstanceDir/LinuxServer"
+		
+		((MaxGamePort++)); ((MaxQueryPort++)); ((MaxWebAdminPort++))
+		
+		multini -s "$InstanceDir/instance.conf" '' 'PortGame'  "$MaxGamePort"
+		multini -s "$InstanceDir/instance.conf" '' 'PortQuery' "$MaxQueryPort"
+		multini -s "$InstanceDir/instance.conf" '' 'PortWeb'   "$MaxWebAdminPort"
+		
+		multini -s "$InstanceDir/KFWeb.ini"                "IpDrv.WebServer"   "bEnabled"            "true"
+		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "PurgeLogsDays"       "0"
+		multini -s "$InstanceDir/LinuxServer-KFEngine.ini" "LogFiles"          "LogTimes"            "False"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.WebAdmin" "bHttpAuth"           "True"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "Filename"            "$Instance-chat"
+		multini -s "$InstanceDir/KFWebAdmin.ini"           "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
+
+		echo "Instance $Instance created. See /etc/$ScriptName/instances$BetaPostfix/$Instance for edit configuration"
+	done
+}
+
+function instance_chat ()
+{
+	include "$LibDir/webadmin.lib"	
+	
+	local Message=$(echo "$1" | sed 's/ /+/g')
+	shift
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then	
+			local Service=$(service_name "$Instance")
+			if systemctl -q is-active $Service ; then
+				admin_curl "$Instance" "ServerAdmin/current/chat+frame+data" \
+				--request POST            \
+				--data ajax=1             \
+				--data message="$Message" \
+				--data teamsay=-1
+			else
+				echo "Instance $Instance not running - skip"
+			fi
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+}
+
+function instance_delete () # $*: [InstanceName[s]]
+{
+	if [[ -z "$*" ]]; then
+		echo "Are you sure you want to delete all instances? [y/N]"
+		local Answ="N"
+		read Answ
+		if [[ "$Answ" == "y" || "$Answ" == "Y" ]]; then
+			for Instance in $(show_instances)
+			do
+				instance_stop "$Instance"
+				instance_delete "$Instance"
+			done
+		fi
+	else
+		for Instance in $*
+		do 
+			if instance_exists "$Instance"; then
+				local InstanceDir="$InstanceConfigDir/$Instance"
+				instance_stop "$Instance"
+				rm -rf "$InstanceDir"
+				echo "Instance $Instance removed"
+			else
+				echo "Instance $Instance not exists"
+			fi
+		done
+	fi
+}
+
+function instance_disable () # $*: [InstanceName[s]]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	local ToDisableInstanceList=""
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			ToDisableInstanceList+=" $Instance"
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+	
+	if [[ -n "$ToDisableInstanceList" ]]; then
+		systemctl disable $(service_name "$ToDisableInstanceList")
+	else
+		echo "Nothing to do"
+	fi
+}
+
+function instance_enable () # $1*: [InstanceName[s]]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	local ToEnableInstanceList=""
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			ToEnableInstanceList+=" $Instance"
+		else
+			echo "Instance $Instance not exist"
+		fi
+	done
+	
+	if [[ -n "$ToEnableInstanceList" ]]; then
+		systemctl enable $(service_name "$ToEnableInstanceList")
+	else
+		echo "Nothing to do"
+	fi
+}
+
+function instance_list () # $*: [InstanceName[s]]
+{
+	{
+		echo -e "INSTANCE:AUTORUN:STATE:P_GAME:P_QUERY:P_WEB:TYPE:LEN:DIFF:MUTATORS:ARGS:COMMENT"
+		{
+			local InstanceList="$*"
+			if [[ -z "$*" ]] ; then
+				InstanceList=$(show_instances)
+			fi
+			for Instance in $InstanceList
+			do
+				instance_status "$Instance"
+			done
+		} | sort -t : -k 4
+	} | column -t -s :
+}
+
+function instance_status () # $1: InstanceName
+{
+	local Instance="$1"
+	if ! instance_exists "$Instance"; then return 1; fi
+	if systemctl -q is-enabled $(service_name "$Instance"); then
+		local IsEnabled="enabled"
+	else
+		local IsEnabled="disabled"
+	fi
+	if systemctl | grep $(service_name "$Instance") | grep -q 'running' ; then
+		local IsRuning="running"
+	else
+		local IsRuning="stopped"
+	fi
+	local Comment=$(        multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Comment")
+	local GamePort=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortGame")
+	local WebAdminPort=$(   multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortWeb")
+	local QueryPort=$(      multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "PortQuery")
+	local GameType=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Game")
+	local GameLength=$(     multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Length")
+	local GameDifficulty=$( multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Difficulty")
+	local Map=$(            multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Map")
+	local Mutators=$(       multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Mutators")
+	local Args=$(           multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "Args")
+	
+	local DisplayGameType=''
+	local DisplayGameLength=''
+	local DisplayDifficulty=''
+	local DisplayMutators=''
+	
+	for Mutator in ${Mutators//,/ }
+	do
+		local MutName=${MutNames[$Mutator]}
+		if [[ -z "$MutName" ]]; then
+			MutName="$Mutator"
+		fi
+		if [[ -z "$DisplayMutators" ]]; then
+			DisplayMutators="$MutName"
+		else
+			DisplayMutators="$DisplayMutators, $MutName"
+		fi
+	done
+	
+	if [[ -n "$GameType"       ]]; then DisplayGameType=${ModeNames[$GameType]}         ; fi
+	if [[ -n "$GameLength"     ]]; then DisplayGameLength=${WaveNames[$GameLength]}     ; fi
+	if [[ -n "$GameDifficulty" ]]; then DisplayDifficulty=${DiffNames[$GameDifficulty]} ; fi
+	
+	if [[ -z "$DisplayMutators" ]] && [[ -z "$Mutators" ]]; then
+		DisplayMutators='-'
+	fi
+	
+	if [[ -z "$DisplayGameType" ]]; then
+		DisplayGameType="$GameType"
+	fi
+	
+	if [[ -z "$Args" ]]; then
+		Args='-'
+	fi
+	
+	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival'  || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_Endless' || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_VersusSurvival'  || \
+		  "$GameType" == 'KFGameContent.KFGameInfo_Objective' ]]; then
+		DisplayGameLength='-'
+	fi
+	
+	if [[ "$GameType" == 'KFGameContent.KFGameInfo_WeeklySurvival' || \
+		  "$DisplayGameType" == 'KFGameContent.KFGameInfo_VersusSurvival' ]]; then
+		DisplayDifficulty='-'
+	fi
+	
+	echo -e "$Instance:$IsEnabled:$IsRuning:$GamePort:$QueryPort:$WebAdminPort:$DisplayGameType:$DisplayGameLength:$DisplayDifficulty:$DisplayMutators:$Args:$Comment"
+}
+
+function instance_restart () # $*: [InstanceName[s]]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_enabled_instances)
+	fi
+	
+	local ToRestartInstancesList=""
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			ToRestartInstancesList+=" $Instance"
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+	
+	if [[ -n "$ToRestartInstancesList" ]]; then
+		systemctl restart $(service_name "$ToRestartInstancesList")
+	else
+		echo "Nothing to do"
+	fi
+}
+
+function instance_start () # $*: [InstanceName[s]]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_enabled_instances)
+	fi
+	
+	local InactiveServiceList=""
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			local Service=$(service_name "$Instance")
+			if systemctl -q is-active $Service ; then
+				echo "Instance $Instance already running - skip"
+			else
+				InactiveServiceList+=" $Service"
+			fi
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+	
+	if [[ -n "$InactiveServiceList" ]]; then
+		systemctl start $InactiveServiceList
+	else
+		echo "Nothing to do"
+	fi
+}
+
+function instance_stop () # $*: [InstanceName[s]]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		InstanceList=$(show_instances)
+	fi
+	
+	local ToStopInstanceList=""
+	for Instance in $InstanceList
+	do
+		if instance_exists "$Instance"; then
+			ToStopInstanceList+=" $Instance"
+		else
+			echo "Instance $Instance not exitst"
+		fi
+	done
+	
+	if [[ -n "$ToStopInstanceList" ]]; then
+		systemctl stop $(service_name "$ToStopInstanceList")
+	else
+		echo "Nothing to do"
+	fi
+}
+

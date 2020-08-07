@@ -1,0 +1,298 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	
+function game_fix_permissions () # $*: Instance[s]
+{
+	local InstanceList="$*"
+	if [[ -z "$InstanceList" ]] ; then
+		fix_ini_permissions "$InstanceConfigDir"
+	else
+		for Instance in $InstanceList
+		do
+			fix_ini_permissions "$InstanceConfigDir/$Instance"
+		done
+	fi
+}
+
+function fix_ini_permissions () # $1: Dir
+{
+	include /etc/steamcmd/steamcmd.conf
+	include /etc/kf2-srv/kf2-srv.conf
+
+	find "$1" \( -type l -o -type f \) -name '*.ini' | \
+	xargs --max-procs=$(nproc) -I {}  \
+	sh -c "chmod $ForceIniPermissions {}; chown $SteamUser:$ForceIniGroup {}"
+}
+
+function game_run () # $*: Game args
+{
+	include /etc/steamcmd/steamcmd.conf
+
+	if [[ "$USER" == "$SteamUser" ]]; then
+		"$AppBin" "$@"
+	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
+		sudo -u "$SteamUser" "$AppBin" "$@"
+	else
+		echo "You must be a $SteamUser, root or sudo-user to run this command."
+	fi
+}
+
+function game_update ()
+{
+	include /etc/steamcmd/steamcmd.conf
+	include "$LibDir/instance.lib"
+
+	if [[ -n "$KF2POSTFIX" ]]; then
+		local BetaArg="-beta preview"
+	fi
+	if ! server_exists; then
+		first_install
+	elif updates_aviable; then
+		instance_stop
+		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
+		instance_start
+	else
+		echo "Server is up to date"
+	fi
+}
+
+function updates_aviable ()
+{
+	return 0 # steamcmd does not show updates even if they are :(
+	# TODO: check updates correctly (but how?)
+	if [[ -n "$KF2POSTFIX" ]]; then
+		local BetaArg="-beta preview"
+	fi
+	if steamcmd +login anonymous \
+				+force_install_dir $InstallDir \
+				+app_info_update 1 \
+				+app_status $AppServerNum $BetaArg \
+				+quit | \
+				grep 'install state:' | \
+				grep -qiF 'Update Required'; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+function game_validate ()
+{
+	include /etc/steamcmd/steamcmd.conf
+	include "$LibDir/instance.lib"
+
+	if [[ -n "$KF2POSTFIX" ]]; then
+		local BetaArg="-beta preview"
+	fi
+	instance_stop
+	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
+	fix_steamclient_so
+	instance_start
+}
+
+function server_exists ()
+{
+	test -x "$AppBin"
+	return $?
+}
+
+function first_install ()
+{
+	include /etc/steamcmd/steamcmd.conf
+	include /etc/kf2-srv/bot.conf
+
+	if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
+		echo "Errors during installation - exit"
+		exit 1
+	fi
+	
+	rm -rf "$DefaultLogDir"
+	ln -s "$LogDir" "$DefaultLogDir"
+	
+	echo "Creating base ini files"
+	sudo -u "$SteamUser" $AppBin &> /dev/null &
+	while true
+	do
+		if [[ -e "$DefaultConfigDir/KFAI.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/KFWeb.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer-KFEngine.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer-KFGame.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer-KFInput.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini" ]] &&
+		   [[ -e "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini" ]]; then
+		   	break
+		fi
+		sleep 2
+	done
+	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
+	echo "Setting up WebAdmin"
+	multini -s "$DefaultConfigDir/KFWeb.ini" "IpDrv.WebServer" "bEnabled" "true"
+	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "PurgeLogsDays" "0"
+	multini -s "$DefaultConfigDir/LinuxServer-KFEngine.ini" "LogFiles" "LogTimes" "False"
+	
+	sudo -u "$SteamUser" $AppBin &> /dev/null &
+	while true
+	do
+		if [[ -e "$DefaultConfigDir/KFWebAdmin.ini" ]]; then
+		   	break
+		fi
+		sleep 2
+	done
+	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "AuthenticationClass" "WebAdmin.MultiWebAdminAuth"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bHttpAuth"           "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.WebAdmin" "bChatLog"            "True"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "Filename"            "default-chat"
+	multini -s "$DefaultConfigDir/KFWebAdmin.ini" "WebAdmin.Chatlog"  "bIncludeTimeStamp"   "False"
+	
+	echo "Wait while WebAdmin up"
+	sudo -u "$SteamUser" $AppBin &> /dev/null &
+	while ! curl -s -o "/dev/null" -u "Admin:Admin" "localhost:8080"
+	do
+		sleep 2
+	done
+	echo "Setting up server bot"
+	
+	while !	curl -s -o "/dev/null" \
+		-u "Admin:Admin" \
+		"localhost:8080/ServerAdmin/multiadmin" \
+		--request POST \
+		--data adminid="$ServerBotLogin" \
+		--data action="create" 
+	do sleep 2;	done
+	
+	while ! multini -gq \
+		"$DefaultConfigDir/KFMultiAdmin.ini" \
+		"$ServerBotLogin MultiAdminData" \
+		"Password"
+	do sleep 2; done
+	
+	while ! curl -s -o "/dev/null" \
+		-u "Admin:Admin" \
+		"localhost:8080/ServerAdmin/multiadmin" \
+		--request POST \
+		--data adminid="$ServerBotLogin" \
+		--data displayname="ServerBot" \
+		--data enabled=1 \
+		--data password1="$ServerBotPassword" \
+		--data password2="$ServerBotPassword" \
+		--data order="DenyAllow" \
+		--data deny= \
+		--data allow= \
+		--data action="save"
+	do sleep 2; done
+	
+	while [[ -z $(multini -g \
+		"$DefaultConfigDir/KFMultiAdmin.ini" \
+		"$ServerBotLogin MultiAdminData" \
+		"Password") ]]
+	do sleep 2; done
+	
+	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
+	create_cache
+	fix_steamclient_so
+	ln -s "$InstanceConfigDir" "$DefaultConfigDir/instances"
+	make_default_instance
+	echo "KF2 succesfully installed"
+}
+
+function create_cache () 
+{
+	include /etc/steamcmd/steamcmd.conf
+	
+	if [[ -d "$DownloadDir" ]]; then
+		if ! [[ -L "$DefaultDownloadDir" ]]; then
+			if [[ -d "$DefaultDownloadDir" ]]; then
+				rm -rf "$DefaultDownloadDir" "$DownloadDir"
+				ln -s "$DownloadDir" "$DefaultDownloadDir"
+			else
+				install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
+				ln -s "$DownloadDir" "$DefaultDownloadDir"
+			fi
+		fi
+	else
+		if [[ -L "$DefaultDownloadDir" ]]; then
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
+		elif [[ -d "$DefaultDownloadDir" ]]; then
+			mv -f "$DefaultDownloadDir" "$DownloadDir"
+			ln -s "$DownloadDir" "$DefaultDownloadDir"
+		else
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$DownloadDir"
+			install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$InstallDir/Binaries/Win64/steamapps"
+			ln -s "$DownloadDir" "$DefaultDownloadDir"
+		fi
+	fi
+	
+	if ! [[ -d "$CacheDir" ]]; then
+		install -d -g "$SteamUser" -o "$SteamUser" -m 775 "$CacheDir"
+	fi
+	if ! [[ -L "$DefaultCacheDir" ]]; then
+		ln -s "$CacheDir" "$DefaultCacheDir"
+	fi
+}
+
+function fix_steamclient_so ()
+{
+	rm -f "$InstallDir/linux64/steamclient.so"
+	rm -f "$InstallDir/steamclient.so"
+	rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
+	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+}
+
+function make_default_instance () # $1: Dir
+{
+	include /etc/steamcmd/steamcmd.conf
+	include /etc/kf2-srv/kf2-srv.conf
+
+	local InstanceDir="$InstanceConfigDir/default"
+	
+	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir"
+	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir/LinuxServer"
+	install    -g "$SteamUser" -o "$ForceIniGroup" -m $ForceIniPermissions  "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
+	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
+	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
+	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"
+	ln -s "$DefaultConfigDir/KFMultiAdmin.ini"                              "$InstanceDir/KFMultiAdmin.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFEngine.ini"                      "$InstanceDir/LinuxServer-KFEngine.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFGame.ini"                        "$InstanceDir/LinuxServer-KFGame.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFInput.ini"                       "$InstanceDir/LinuxServer-KFInput.ini"
+	ln -s "$DefaultConfigDir/LinuxServer-KFSystemSettings.ini"              "$InstanceDir/LinuxServer-KFSystemSettings.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerEngine.ini"             "$InstanceDir/LinuxServer/LinuxServerEngine.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerGame.ini"               "$InstanceDir/LinuxServer/LinuxServerGame.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerInput.ini"              "$InstanceDir/LinuxServer/LinuxServerInput.ini"
+	ln -s "$DefaultConfigDir/LinuxServer/LinuxServerSystemSettings.ini"     "$InstanceDir/LinuxServer/LinuxServerSystemSettings.ini"
+	
+	fix_ini_permissions "$InstanceDir"
+	fix_ini_eol "$InstanceDir"
+}
+
+function fix_ini_eol () # $1: Dir
+{
+	find "$1" \( -type l -o -type f \) -name '*.ini' | \
+	xargs --max-procs=$(nproc) -I {}  \
+	sh -c "dos2unix -F {}"
+}
+
