@@ -65,6 +65,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/cache/kf2-srv
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}/cmdgrp
+%attr(0755,root,root)         %dir               %{_datadir}/%{name}/cmdgrp/*
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}/lib
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/instance.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
@@ -77,7 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 %attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
 %attr(0644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
-%attr(0644,root,root)                            %{_datadir}/%{name}/cmdgrp/*
+%attr(0644,root,root)                            %{_datadir}/%{name}/cmdgrp/*/*
 %attr(0644,root,root)                            %{_datadir}/%{name}/lib/*
 
 %preun
