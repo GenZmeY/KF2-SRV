@@ -1,9 +1,8 @@
 - selinux
 - sudo for steamuser
 - kick by level
-- split the script into separate files
 - man pages
-- english help
+- write help pages for each command
 - check ban EGS players (mb bugs)
 - ban history
 - temporary ban
