@@ -26,6 +26,31 @@ readonly ScriptVersion=$(rpm -q --queryformat '%{VERSION}' "$ScriptName")
 readonly GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
 readonly LibDir=":DEFINE_PREFIX:/share/kf2-srv/lib"
 
+readonly InstallDir=":DEFINE_PREFIX:/games/kf2-srv${KF2POSTFIX}"
+readonly AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+
+readonly DefaultConfigDir="$InstallDir/KFGame/Config"
+readonly DefaultDownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop"
+readonly DefaultCacheDir="$InstallDir/KFGame/Cache"
+readonly DefaultLogDir="$InstallDir/KFGame/Logs"
+
+readonly DownloadDir="/var/cache/kf2-srv/workshop"
+readonly CacheDir="/var/cache/kf2-srv/cache"
+readonly LogDir="/var/log/kf2-srv${KF2POSTFIX}"
+
+readonly InstanceConfigDir="/etc/kf2-srv/instances${KF2POSTFIX}"
+readonly InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
+
+readonly AppServerNum="232130"
+readonly AppClientNum="232090"
+readonly StrangeConstUID="17825793"
+readonly ServerBotLogin="srvbot"
+
+declare -a DiffNames
+declare -a WaveNames
+declare -A ModeNames
+declare -A MutNames
+
 function include () # $1: Lib
 {
 	if ! echo "$INC_LIBS" | grep -Foq "$1"; then
@@ -40,7 +65,8 @@ function run_as_steamuser () # $@: command
 	
 	if [[ "$(whoami)" == "$SteamUser" ]]; then
 		shift 2; cmd_main "$@"
-	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
+	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]] || [[ "$(whoami)" == "root" ]]; then
+		export INC_LIBS=""
 		sudo -u "$SteamUser" "$@"
 	else
 		echo "You must be a $SteamUser, root or sudo-user to run this command."
@@ -52,6 +78,7 @@ function run_as_root () # $@: command
 	if [[ "$(whoami)" == "root" ]]; then
 		shift 2; cmd_main "$@"
 	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]]; then
+		export INC_LIBS=""
 		sudo "$@"
 	else
 		echo "You must be root or sudo-user to run this command."

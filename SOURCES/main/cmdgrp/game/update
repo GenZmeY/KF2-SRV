@@ -36,12 +36,12 @@ function cmd_help ()
 
 function cmd_need_superuser ()
 {
-	false
+	true
 }
 
 function cmd_need_steamuser ()
 {
-	true
+	false
 }
 
 function cmd_main ()
