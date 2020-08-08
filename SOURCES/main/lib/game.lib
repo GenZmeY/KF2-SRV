@@ -42,17 +42,9 @@ function fix_ini_permissions () # $1: Dir
 	sh -c "chmod $ForceIniPermissions {}; chown $SteamUser:$ForceIniGroup {}"
 }
 
-function game_run () # $*: Game args
+function game_run () # $@: Game args
 {
-	include /etc/steamcmd/steamcmd.conf
-
-	if [[ "$USER" == "$SteamUser" ]]; then
-		"$AppBin" "$@"
-	elif [[ -n $(groups "$USER" | grep -Fo 'wheel') ]] || [[ "$EUID" -eq 0 ]]; then
-		sudo -u "$SteamUser" "$AppBin" "$@"
-	else
-		echo "You must be a $SteamUser, root or sudo-user to run this command."
-	fi
+	"$AppBin" "$@"
 }
 
 function game_update ()
