@@ -64,7 +64,7 @@ function run_as_steamuser () # $@: command
 	include "/etc/steamcmd/steamcmd.conf"
 	
 	if [[ "$(whoami)" == "$SteamUser" ]]; then
-		shift 2; cmd_main "$@"
+		shift 3; cmd_main "$@"
 	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]] || [[ "$(whoami)" == "root" ]]; then
 		export INC_LIBS=""
 		sudo -u "$SteamUser" "$@"
@@ -76,7 +76,7 @@ function run_as_steamuser () # $@: command
 function run_as_root () # $@: command
 {
 	if [[ "$(whoami)" == "root" ]]; then
-		shift 2; cmd_main "$@"
+		shift 3; cmd_main "$@"
 	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]]; then
 		export INC_LIBS=""
 		sudo "$@"
