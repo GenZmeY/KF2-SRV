@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.14.0
+Version:    0.14.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -11,9 +11,6 @@ BuildArch:  noarch
 Source0:    %{name}-%{version}.tar.gz 
 
 BuildRequires: systemd-rpm-macros
-
-#BuildRequires(check): xmllint
-#BuildRequires(check): systemd >= 219
 
 Requires:   systemd >= 219
 Requires:   steamcmd >= 2018.01.05-5
@@ -99,6 +96,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Sat Aug 8 2020 GenZmeY <genzmey@gmail.com> - 0.14.1-1
+- parallel actions for instance list.
+
 * Sat Aug 8 2020 GenZmeY <genzmey@gmail.com> - 0.14.0-1
 - new usage (groups/commands);
 - new code structure;
