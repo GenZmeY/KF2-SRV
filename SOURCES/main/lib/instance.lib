@@ -67,7 +67,7 @@ function instance_add () # $*: InstanceName[s]
 		exit 1
 	elif ! server_exists; then
 		echo "You must install server first"
-		echo "Run \"$ScriptName --update\" to install it"
+		echo "Run \"$ScriptName game update\" to install it"
 		exit 1
 	fi
 	
@@ -132,7 +132,7 @@ function instance_add () # $*: InstanceName[s]
 	done
 }
 
-function instance_chat ()
+function instance_chat () # $1: Message, $*: instance...
 {
 	include "$LibDir/webadmin.lib"	
 	
