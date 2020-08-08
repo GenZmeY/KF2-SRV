@@ -195,7 +195,6 @@ test: fake-systemd-build
 	
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/ban.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/game.lib
-	$(BASHCHECK)      $(RELEASEDIR)/main/lib/globals.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/instance.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/maprotate.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/password.lib
