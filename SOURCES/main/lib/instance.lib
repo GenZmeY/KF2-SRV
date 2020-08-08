@@ -253,8 +253,11 @@ function instance_list () # $*: [InstanceName[s]]
 			fi
 			for Instance in $InstanceList
 			do
+			(
 				instance_status "$Instance"
+			) &
 			done
+			wait
 		} | sort -t : -k 4
 	} | column -t -s :
 }
