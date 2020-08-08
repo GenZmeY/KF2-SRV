@@ -6,20 +6,20 @@ Requires=network-online.target
 [Service]
 Type=oneshot
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --chat '.'
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --chat 'Server will restart after 30 minutes'
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat '.'
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat 'Server will restart after 30 minutes'
 ExecStart=/bin/sleep 15m
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --chat 'Server will restart after 15 minutes'
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat 'Server will restart after 15 minutes'
 ExecStart=/bin/sleep 10m
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --chat 'Server will restart after 5 minutes'
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat 'Server will restart after 5 minutes'
 ExecStart=/bin/sleep 5m
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --chat 'Server shutting down...'
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat 'Server shutting down...'
 ExecStart=/bin/sleep 5s
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv --update
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance update
 
 PrivateTmp=true
 PrivateDevices=true
