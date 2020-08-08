@@ -21,24 +21,24 @@ NAME           := kf2-srv
 
 SOURCEDIR      := .
 RELEASEDIR     := $(SOURCEDIR)/release
-BUILDROOT       =
+DESTDIR         =
 PREFIX          = /usr/local
 
-MAINLOGDIR      = $(BUILDROOT)/var/log/$(NAME)
-BETALOGDIR      = $(BUILDROOT)/var/log/$(NAME)-beta
-CONFDIR         = $(BUILDROOT)/etc/$(NAME)
+MAINLOGDIR      = $(DESTDIR)/var/log/$(NAME)
+BETALOGDIR      = $(DESTDIR)/var/log/$(NAME)-beta
+CONFDIR         = $(DESTDIR)/etc/$(NAME)
 INSTMAINDIR     = $(CONFDIR)/instances
 INSTBETADIR     = $(CONFDIR)/instances-beta
 MAPCYCLEDIR     = $(CONFDIR)/mapcycles
-CACHEDIR        = $(BUILDROOT)/var/cache/$(NAME)
-LOGROTATEDIR    = $(BUILDROOT)/etc/logrotate.d
-RSYSLOGDIR      = $(BUILDROOT)/etc/rsyslog.d
-UNITDIR         = $(if $(BUILDROOT),$(BUILDROOT)/usr/lib/systemd/system,/etc/systemd/system)
-FIREWALLDDIR    = $(if $(BUILDROOT),$(BUILDROOT)/usr/lib/firewalld/services,/etc/firewalld/services)
-BINDIR          = $(BUILDROOT)$(PREFIX)/bin
-SBINDIR         = $(BUILDROOT)$(PREFIX)/sbin
-GAMEDIR         = $(BUILDROOT)$(PREFIX)/games
-DATADIR         = $(BUILDROOT)$(PREFIX)/share
+CACHEDIR        = $(DESTDIR)/var/cache/$(NAME)
+LOGROTATEDIR    = $(DESTDIR)/etc/logrotate.d
+RSYSLOGDIR      = $(DESTDIR)/etc/rsyslog.d
+UNITDIR         = $(if $(DESTDIR),$(DESTDIR)/usr/lib/systemd/system,/etc/systemd/system)
+FIREWALLDDIR    = $(if $(DESTDIR),$(DESTDIR)/usr/lib/firewalld/services,/etc/firewalld/services)
+BINDIR          = $(DESTDIR)$(PREFIX)/bin
+SBINDIR         = $(DESTDIR)$(PREFIX)/sbin
+GAMEDIR         = $(DESTDIR)$(PREFIX)/games
+DATADIR         = $(DESTDIR)$(PREFIX)/share
 SCRIPTDIR       = $(DATADIR)/$(NAME)
 SCRIPTGRPDIR    = $(SCRIPTDIR)/cmdgrp
 SCRIPTLIBDIR    = $(SCRIPTDIR)/lib
@@ -66,7 +66,7 @@ build:
 fake-systemd-build:
 	find $(SOURCEDIR)/main       -type f -name '*.service' -exec cp -f {} $(RELEASEDIR)/{} \;
 	find $(SOURCEDIR)/force-attr -type f -name '*.service' -exec cp -f {} $(RELEASEDIR)/{} \;
-	find $(RELEASEDIR)           -type f -exec sed -i  's|:DEFINE_PREFIX:|$(BUILDROOT)$(PREFIX)|g;' {} \;
+	find $(RELEASEDIR)           -type f -exec sed -i  's|:DEFINE_PREFIX:|$(DESTDIR)$(PREFIX)|g;' {} \;
 	find $(RELEASEDIR)           -type f -exec sed -i -r 's|ExecStart=.+KFGameSteamServer.bin.x86_64|ExecStart=/bin/bash|g;' {} \;
 
 filesystem:
@@ -201,7 +201,6 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/playerids.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/webadmin.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/workshop.lib
-
 
 clean:
 	rm -rf $(RELEASEDIR)

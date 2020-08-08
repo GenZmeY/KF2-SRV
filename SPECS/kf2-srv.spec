@@ -45,10 +45,10 @@ Command line tool for managing a set of Killing Floor 2 servers.
 %install
 rm -rf $RPM_BUILD_ROOT
 
-make install BUILDROOT=%{buildroot} PREFIX=%{_prefix}
+make install DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
 %check
-make test BUILDROOT=%{buildroot} PREFIX=%{_prefix}
+make test DESTDIR=%{buildroot} PREFIX=%{_prefix}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
