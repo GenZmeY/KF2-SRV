@@ -48,7 +48,6 @@ KF2BETADIR      = $(GAMEDIR)/$(NAME)-beta
 
 BASHCHECK      := bash -n
 SYSTEMDCHECK   := systemd-analyze verify
-LOGROTATECHECK := logrotate -d
 XMLCHECK       := xmllint --noout
 
 .PHONY: build fake-systemd-build install uninstall filesystem test clean all
@@ -154,10 +153,6 @@ uninstall:
 	rm -rf $(CACHEDIR)
 
 test: fake-systemd-build
-    ifeq ($(shell $(LOGROTATECHECK) $(RELEASEDIR)/main/logrotate/$(NAME) 2>&1 | grep -qi 'error'; echo $$?), 0)
-		$(LOGROTATECHECK) $(RELEASEDIR)/main/logrotate/$(NAME)
-    endif
-
 	$(XMLCHECK)       $(RELEASEDIR)/main/firewalld/$(NAME).xml
 	
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)@.service
