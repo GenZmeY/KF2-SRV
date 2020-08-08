@@ -60,8 +60,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances
 %attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/instances-beta
 %attr(0775,root,%{steamuser}) %dir               %{_sysconfdir}/%{name}/mapcycles
-%attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
-%attr(0770,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
+%attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}
+%attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/log/%{name}-beta
 %attr(0775,root,%{steamuser}) %dir               %{_localstatedir}/cache/kf2-srv
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}/cmdgrp
