@@ -166,8 +166,6 @@ function full_info ()
 	echo "Use --help as an argument for information on a specific group or command"
 }
 
-include "$LibDir/globals.lib"
-
 Group="$1"
 Command="$2"
 
