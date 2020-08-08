@@ -265,6 +265,8 @@ function instance_list () # $*: [InstanceName[s]]
 
 function instance_status () # $1: InstanceName
 {
+	include /etc/kf2-srv/kf2-srv.conf
+	
 	local Instance="$1"
 	if ! instance_exists "$Instance"; then return 1; fi
 	if systemctl -q is-enabled $(service_name "$Instance"); then
