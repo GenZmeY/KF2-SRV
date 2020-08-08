@@ -99,6 +99,14 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Sat Aug 8 2020 GenZmeY <genzmey@gmail.com> - 0.14.0-1
+- new usage (groups/commands);
+- new code structure;
+- build system;
+- tests;
+- parallel actions;
+- short english description.
+
 * Sun Jul 19 2020 GenZmeY <genzmey@gmail.com> - 0.13.0-1
 - /var/cache to store the workshop cache;
 - fixed endless downloading of workshop items that tripware gave us in PC Build 1099 patch;
