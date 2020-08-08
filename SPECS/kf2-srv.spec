@@ -83,8 +83,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
-	%{_bindir}/%{name} --stop
-	%{_bindir}/%{name} --disable
+	%{_bindir}/%{name} instance stop
+	%{_bindir}/%{name} instance disable
 	rm -rf %{_prefix}/games/%{name}/*
 	rm -rf %{_prefix}/games/%{name}-beta/*
 	rm -rf %{_sysconfdir}/%{name}/instances/default
