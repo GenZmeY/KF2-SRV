@@ -56,6 +56,10 @@ srpm: check-activate prep
 	rpmbuild -bs $(SPEC)
 	$(MAKE) clean-tmp
 
+test: check-activate prep
+	rpmbuild -bi $(SPEC)
+	$(MAKE) clean-tmp
+
 active: activate
 
 activate:
