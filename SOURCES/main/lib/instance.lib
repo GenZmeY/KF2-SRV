@@ -65,10 +65,6 @@ function instance_add () # $*: InstanceName[s]
 	if [[ -z "$*" ]]; then
 		echo "Name of instance[s] must be set"
 		exit 1
-	elif ! server_exists; then
-		echo "You must install server first"
-		echo "Run \"${ScriptName}${KF2POSTFIX} game update\" to install it"
-		exit 1
 	fi
 	
 	local MaxGamePort='7777'

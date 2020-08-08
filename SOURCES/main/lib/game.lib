@@ -18,7 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-	
+
 function game_fix_permissions () # $*: Instance[s]
 {
 	local InstanceList="$*"
@@ -98,12 +98,6 @@ function game_validate ()
 	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
 	fix_steamclient_so
 	instance_start
-}
-
-function server_exists ()
-{
-	test -x "$AppBin"
-	return $?
 }
 
 function first_install ()
