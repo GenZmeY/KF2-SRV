@@ -2,7 +2,7 @@
 
 Name:       kf2-srv
 Version:    0.14.1
-Release:    1%{dist}
+Release:    2%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
 License:    GNU GPLv3
@@ -96,6 +96,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Mon Aug 10 2020 GenZmeY <genzmey@gmail.com> - 0.14.1-2
+- github-actions build.
+
 * Sat Aug 8 2020 GenZmeY <genzmey@gmail.com> - 0.14.1-1
 - parallel actions for instance list.
 
