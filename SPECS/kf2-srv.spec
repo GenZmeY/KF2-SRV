@@ -10,7 +10,10 @@ BuildArch:  noarch
 
 Source0:    %{name}-%{version}.tar.gz 
 
+# test deps
+BuildRequires: systemd
 BuildRequires: systemd-rpm-macros
+BuildRequires: libxml2
 
 Requires:   systemd >= 219
 Requires:   steamcmd >= 2018.01.05-5
