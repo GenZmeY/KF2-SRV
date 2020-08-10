@@ -46,7 +46,7 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             with:
                 upload_url: ${{ steps.create_release.outputs.upload_url }} 
-                asset_path: /home/runner/work/kf2-srv/kf2-srv/RPMS/x86_64/${{ steps.build.outputs.rpm_name }}
+                asset_path: /home/runner/work/kf2-srv/kf2-srv/RPMS/noarch/${{ steps.build.outputs.rpm_name }}
                 asset_name: ${{ steps.build.outputs.rpm_name }}
                 asset_content_type: application/gzip
                 
