@@ -59,6 +59,7 @@ function workshop_list ()
 		{
 			for WorkshopID in $(workshop_list_ids)
 			do
+			(
 				local Cache="$CacheDir/$WorkshopID"
 				local Downl="$DownloadDir/content/$AppClientNum/$WorkshopID"
 				local Url="https://steamcommunity.com/sharedfiles/filedetails/?id=$WorkshopID"
@@ -69,7 +70,9 @@ function workshop_list ()
 					local WsSize="-"; WsName="-"
 				fi
 				echo "$WorkshopID $WsName $WsSize $Url"
+			) &
 			done
+			wait
 		} | sort -k 2
 	} | column -t
 }
