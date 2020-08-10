@@ -34,11 +34,14 @@ SPEC          := $(SPECSDIR)/$(NAME).spec
 VERSION       := $(shell grep -Fi 'Version:' $(SPEC) | awk '{ print $$2 }')
 SOURCETARBALL := $(SOURCESDIR)/$(NAME)-$(VERSION).tar.gz
 
-.PHONY: all prep rpm srpm activate active check-activate clean-tmp clean-pkg clean
+.PHONY: all prep rpm srpm activate active check-activate clean-tmp clean-pkg clean builddep test
 
 all: check-activate prep
 	rpmbuild -ba $(SPEC)
 	$(MAKE) clean-tmp
+
+builddep:
+	dnf builddep $(SPEC)
 
 prep: clean-tmp
 	cd $(SOURCESDIR) && tar czf $(SOURCETARBALL) \

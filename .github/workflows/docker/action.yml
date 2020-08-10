@@ -1,0 +1,22 @@
+name: 'make'
+
+description: 'make <target>'
+
+inputs:
+    target:
+        description: 'make <target>'
+        required: true
+        default: ''
+
+outputs:
+    rpm_name:
+        description: 'rpm name'
+    srpm_name:
+        description: 'src.rpm name'
+
+runs:
+    using: 'docker'
+    image: 'Dockerfile'
+    args:
+        - ${{ inputs.target }}
+
