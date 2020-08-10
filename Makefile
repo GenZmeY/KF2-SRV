@@ -41,7 +41,7 @@ all: check-activate prep
 	$(MAKE) clean-tmp
 
 builddep:
-	dnf builddep $(SPEC)
+	dnf builddep -y $(SPEC)
 
 prep: clean-tmp
 	cd $(SOURCESDIR) && tar czf $(SOURCETARBALL) \
