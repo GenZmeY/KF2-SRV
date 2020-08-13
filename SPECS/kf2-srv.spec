@@ -1,8 +1,8 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.14.1
-Release:    2%{dist}
+Version:    0.15.0
+Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
 License:    GNU GPLv3
@@ -31,6 +31,7 @@ Requires:   multini >= 0.2.3
 Requires:   rsyslog >= 8.25.0
 Requires:   logrotate
 Requires:   inotify-tools
+Requires:   bash-completion >= 2.7
 
 Provides:   %{name}
 
@@ -80,6 +81,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root)                            %{_sysconfdir}/logrotate.d/%{name}
 %attr(0644,root,root)                            %{_datadir}/%{name}/cmdgrp/*/*
 %attr(0644,root,root)                            %{_datadir}/%{name}/lib/*
+%attr(0644,root,root)                            %{_sysconfdir}/bash_completion.d/%{name}
 
 %preun
 if [[ $1 -eq 0 ]] ; then # Uninstall
@@ -99,6 +101,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Thu Aug 13 2020 GenZmeY <genzmey@gmail.com> - 0.15.0-1
+- bash completion support.
+
 * Mon Aug 10 2020 GenZmeY <genzmey@gmail.com> - 0.14.1-2
 - github-actions build.
 

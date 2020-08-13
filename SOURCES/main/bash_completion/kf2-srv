@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+function _kf2_srv_completions () # $1: BetaPostfix
+{
+	local GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
+	local InsDir="/etc/kf2-srv/instances${BetaPostfix}"
+	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv${BetaPostfix}"
+	
+	function groups_list ()
+	{
+		find "$GrpDir"       \
+			-mindepth 1      \
+			-maxdepth 1      \
+			-type d          \
+			-printf "%f\n"
+	}
+
+	function commands_list () # $1: Command group
+	{
+		find "$GrpDir/$1"    \
+			-mindepth 1      \
+			-maxdepth 1      \
+			-type f          \
+			-printf "%f\n"
+	}
+
+	function instances_list ()
+	{
+		find "$InsDir"       \
+			-mindepth 1      \
+			-maxdepth 1      \
+			-type d          \
+			-printf "%f\n"
+	}
+	
+	function command_usage_processing () # $1: Command group, $2: Command, $3: Current argument position
+	{
+		local CmdParams=$("$KF2Srv" "$1" "$2" "usage")
+		local LocalPosition; ((LocalPosition = $3 - 2))
+		
+		local ParamIndex=0
+		local LastParam
+		for Param in $CmdParams
+		do
+			((ParamIndex++))
+			if [[ "$ParamIndex" -eq "$LocalPosition" ]]; then
+				if echo "$Param" | grep -Fq '<instance>'; then
+					COMPREPLY=($(compgen -W "$(instances_list)" -- "${CURARG}"))
+				fi
+				return 0
+			fi
+			LastParam="$Param"
+		done
+		
+		if echo "$LastParam" | grep -Fq '<instance>...'; then
+			COMPREPLY=($(compgen -W "$(instances_list)" -- "${CURARG}"))
+		fi
+	}
+	
+	COMPREPLY=()
+	CURARG="${COMP_WORDS[COMP_CWORD]}"
+	
+	case "${COMP_CWORD}" in
+		1 ) COMPREPLY=($(compgen -W "$(groups_list)"                    -- "${CURARG}"))  ;;
+		2 ) COMPREPLY=($(compgen -W "$(commands_list ${COMP_WORDS[1]})" -- "${CURARG}"))  ;;
+		* ) command_usage_processing "${COMP_WORDS[1]}" "${COMP_WORDS[2]}" "${COMP_CWORD}";;
+	esac
+	
+	return 0
+}
+
+function _kf2_srv_beta_completions ()
+{
+	_kf2_srv_completions "-beta"
+}
+
+complete -F _kf2_srv_completions kf2-srv
+complete -F _kf2_srv_beta_completions kf2-srv-beta
+
