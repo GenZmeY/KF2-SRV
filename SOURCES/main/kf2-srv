@@ -90,6 +90,11 @@ function is_help () # $1: Arg
 	echo "$1" | grep -Piqo '^(-h|--help|help)$'
 }
 
+function is_usage () # $1: Arg
+{
+	echo "$1" | grep -Piqo '^usage$'
+}
+
 function is_version () # $1: Arg
 {
 	echo "$1" | grep -Piqo '^(-v|--version|version)$'
@@ -196,6 +201,12 @@ elif [[ -d "$GroupPathname" ]]; then
 				cmd_help
 			else
 				echo "No help page for this command."
+			fi
+		elif is_usage "$1"; then
+			if function_exists "cmd_usage"; then
+				cmd_usage
+			else
+				echo "No usage information for this command."
 			fi
 		else
 			if function_exists "cmd_main"; then

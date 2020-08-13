@@ -27,6 +27,7 @@ PREFIX          = /usr/local
 MAINLOGDIR      = $(DESTDIR)/var/log/$(NAME)
 BETALOGDIR      = $(DESTDIR)/var/log/$(NAME)-beta
 CONFDIR         = $(DESTDIR)/etc/$(NAME)
+BASHCOMPDIR     = $(DESTDIR)/etc/bash_completion.d
 INSTMAINDIR     = $(CONFDIR)/instances
 INSTBETADIR     = $(CONFDIR)/instances-beta
 MAPCYCLEDIR     = $(CONFDIR)/mapcycles
@@ -88,6 +89,7 @@ filesystem:
 	test -d '$(RSYSLOGDIR)'   || install -m 755 -d '$(RSYSLOGDIR)'
 	test -d '$(SCRIPTGRPDIR)' || install -m 755 -d '$(SCRIPTGRPDIR)'
 	test -d '$(SCRIPTLIBDIR)' || install -m 755 -d '$(SCRIPTLIBDIR)'
+	test -d '$(BASHCOMPDIR)'  || install -m 755 -d '$(BASHCOMPDIR)'
 
 install: filesystem build
 	install -m 755 $(RELEASEDIR)/main/$(NAME)                                  $(BINDIR)
@@ -128,6 +130,8 @@ install: filesystem build
 	install -m 644 $(RELEASEDIR)/config/$(NAME).conf                           $(CONFDIR)
 	
 	install -m 644 $(SOURCEDIR)/COPYING                                        $(LICENSEDIR)
+	
+	install -m 644 $(RELEASEDIR)/main/bash_completion/$(NAME)                  $(BASHCOMPDIR)
 
 uninstall:
 	rm -f  $(BINDIR)/$(NAME)
@@ -201,6 +205,8 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/playerids.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/webadmin.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/workshop.lib
+	
+	$(BASHCHECK)      $(RELEASEDIR)/main/bash_completion/$(NAME)
 
 clean:
 	rm -rf $(RELEASEDIR)
