@@ -22,8 +22,8 @@
 function _kf2_srv_completions () # $1: BetaPostfix
 {
 	local GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
-	local InsDir="/etc/kf2-srv/instances${BetaPostfix}"
-	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv${BetaPostfix}"
+	local InsDir="/etc/kf2-srv/instances${1}"
+	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv${1}"
 	
 	function groups_list ()
 	{

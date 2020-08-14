@@ -83,11 +83,11 @@ check-activate:
 clean-tmp:
 	rm -rf $(BUILDDIR)
 	rm -rf $(BUILDROOTDIR)
-	rm -rf $(SOURCETARBALL)
+	rm -f  $(SOURCETARBALL)
 	
 clean-pkg:
 	rm -rf $(RPMSDIR)
 	rm -rf $(SRPMSDIR)
 
 clean: clean-tmp clean-pkg
-
+	rm -f $(SOURCESDIR)/$(NAME)-*.tar.gz
