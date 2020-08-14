@@ -101,7 +101,7 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
-* Thu Aug 14 2020 GenZmeY <genzmey@gmail.com> - 0.15.1-1
+* Fri Aug 14 2020 GenZmeY <genzmey@gmail.com> - 0.15.1-1
 - fix bash completion for kf2-srv-beta.
 
 * Thu Aug 13 2020 GenZmeY <genzmey@gmail.com> - 0.15.0-1
