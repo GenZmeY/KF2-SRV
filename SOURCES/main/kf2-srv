@@ -67,7 +67,7 @@ function run_as_steamuser () # $@: command
 		shift 3; cmd_main "$@"
 	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]] || [[ "$(whoami)" == "root" ]]; then
 		export INC_LIBS=""
-		sudo -u "$SteamUser" "$@"
+		sudo -iu "$SteamUser" "$@"
 	else
 		echo "You must be a $SteamUser, root or sudo-user to run this command."
 	fi
@@ -79,7 +79,7 @@ function run_as_root () # $@: command
 		shift 3; cmd_main "$@"
 	elif [[ -n $(groups "$(whoami)" | grep -Fo 'wheel') ]]; then
 		export INC_LIBS=""
-		sudo "$@"
+		sudo -i "$@"
 	else
 		echo "You must be root or sudo-user to run this command."
 	fi
