@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.15.1
+Version:    0.15.2
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -101,6 +101,10 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Fri Aug 14 2020 GenZmeY <genzmey@gmail.com> - 0.15.2-1
+- fix bash completion for commands without parameters;
+- fix bash completion for use not existing command group.
+
 * Fri Aug 14 2020 GenZmeY <genzmey@gmail.com> - 0.15.1-1
 - fix bash completion for kf2-srv-beta.
 

@@ -19,36 +19,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-function _kf2_srv_completions () # $1: BetaPostfix
+function _kf2_srv_completions ()
 {
-	local GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
-	local InsDir="/etc/kf2-srv/instances${1}"
-	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv${1}"
-	
 	function groups_list ()
 	{
-		find "$GrpDir"       \
-			-mindepth 1      \
-			-maxdepth 1      \
-			-type d          \
+		find "$GrpDir"          \
+			-mindepth 1         \
+			-maxdepth 1         \
+			-type d             \
 			-printf "%f\n"
 	}
 
 	function commands_list () # $1: Command group
 	{
-		find "$GrpDir/$1"    \
-			-mindepth 1      \
-			-maxdepth 1      \
-			-type f          \
+		test -d "$GrpDir/$1" && \
+		find "$GrpDir/$1"       \
+			-mindepth 1         \
+			-maxdepth 1         \
+			-type f             \
 			-printf "%f\n"
 	}
 
 	function instances_list ()
 	{
-		find "$InsDir"       \
-			-mindepth 1      \
-			-maxdepth 1      \
-			-type d          \
+		find "$InsDir"          \
+			-mindepth 1         \
+			-maxdepth 1         \
+			-type d             \
 			-printf "%f\n"
 	}
 	
@@ -88,11 +85,24 @@ function _kf2_srv_completions () # $1: BetaPostfix
 	return 0
 }
 
-function _kf2_srv_beta_completions ()
+function _kf2_srv_main_completions ()
 {
-	_kf2_srv_completions "-beta"
+	local GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
+	local InsDir="/etc/kf2-srv/instances"
+	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv"
+	
+	_kf2_srv_completions
 }
 
-complete -F _kf2_srv_completions kf2-srv
+function _kf2_srv_beta_completions ()
+{
+	local GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
+	local InsDir="/etc/kf2-srv/instances-beta"
+	local KF2Srv=":DEFINE_PREFIX:/bin/kf2-srv-beta"
+	
+	_kf2_srv_completions
+}
+
+complete -F _kf2_srv_main_completions kf2-srv
 complete -F _kf2_srv_beta_completions kf2-srv-beta
 
