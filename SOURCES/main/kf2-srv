@@ -43,7 +43,7 @@ readonly InstanceConfigTemplate="/etc/kf2-srv/instance.conf.template"
 
 readonly AppServerNum="232130"
 readonly AppClientNum="232090"
-readonly StrangeConstUID="17825793"
+readonly SteamConstB='17825793'
 readonly ServerBotLogin="srvbot"
 
 declare -a DiffNames

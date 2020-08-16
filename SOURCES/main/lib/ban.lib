@@ -108,7 +108,7 @@ function ban_ID3 () # $1: ID3
 	do
 	(
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		local BanStr="(Uid=(A=$ID3,B=$SteamConstB))"
 		local Service=$(service_name "$Instance")
 		if ! multini -gq "$Config" "Engine.AccessControl" "BannedIDs" "$BanStr"; then
 			echo "Add ban $ID3 to $Instance"
@@ -137,7 +137,7 @@ function unban_ID3 () # $1: ID3
 	do
 	(
 		local Config="$InstanceConfigDir/$Instance/LinuxServer-KFGame.ini"
-		local BanStr="(Uid=(A=$ID3,B=$StrangeConstUID))"
+		local BanStr="(Uid=(A=$ID3,B=$SteamConstB))"
 		local Service=$(service_name "$Instance")
 		if systemctl -q is-active $Service ; then
 			local PlainID=0

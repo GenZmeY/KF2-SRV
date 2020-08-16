@@ -19,35 +19,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# conversion algorithm taken from here:
-# https://github.com/noobient/killinuxfloor/blob/master/share/killinuxfloor
-# thank bviktor for that :)
-function steamID3_to_steamID64 () # $1: ID3
+# WARNING:
+# Conversion works correctly for positive A/B for EGS, 
+# but still gives incorrect results if there are negative ones
+
+function steamID3_to_steamID64 () # $1: ID3 (A), $2: B
 {
-    # steamID64 = "7656" + (steamID3 + 1197960265728)
-    ID64=$1
-    ((ID64+=1197960265728))
-    ID64="7656${ID64}"
-    echo "$ID64"
+	local ID3="$1"
+	if [[ -z $2 ]]; then
+		local B="$SteamConstB"
+	else
+		local B="$2"
+	fi
+	
+	# SteamID64=B*2^32+SteamID3
+    echo $(($B*(2**32)+$ID3))
 }
 
-function steamID64_to_steamID3 () # $1: ID4
+function steamID64_to_steamID3 () # $1: ID64, $2: B
 {
-    # steamID3 = substr(steamID64, 4) - 1197960265728
-    ID3=${1:4}
-    ((ID3-=1197960265728))
-    echo "$ID3"
+	local ID64="$1"
+	if [[ -z $2 ]]; then
+		local B="$SteamConstB"
+	else
+		local B="$2"
+	fi
+	
+	# SteamID3=SteamID64-B*2^32
+    echo $(($ID64-$B*(2**32)))
 }
 
 function any_to_ID3 () # $1: ID3/ID64/Url
 {
 	if echo "$1" | grep -qP '^http.+'; then
-		local Xml=$(mktemp)
-		curl -ss "$1/?xml=1" > "$Xml"
-		local ID64=$(xmllint --xpath 'string(//steamID64/text())' "$Xml")
+		local ID64=$(curl -ss "$1/?xml=1" | xmllint --xpath 'string(//steamID64/text())' -)
 		local ID3=$(steamID64_to_steamID3 "$ID64") 
-		rm -f "$Xml"
-	elif [[ $(echo "$1" | wc -m) -eq 18 ]] && echo "$1" | grep -qP '^76561[0-9]+' ; then
+	elif [[ $(echo "$1" | wc -m) -eq 18 ]] && echo "$1" | grep -qP '^7656[0-9]+' ; then
 		local ID3=$(steamID64_to_steamID3 "$1")
 	else
 		local ID3="$1"
