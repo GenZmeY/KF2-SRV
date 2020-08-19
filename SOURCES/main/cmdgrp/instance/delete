@@ -19,8 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmd_need_superuser        () { false ;}
-cmd_need_steamuser        () { true  ;}
+cmd_need_superuser        () { true  ;}
+cmd_need_steamuser        () { false ;}
 cmd_need_installed_server () { false ;}
 
 function cmd_usage ()
