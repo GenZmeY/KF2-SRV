@@ -19,7 +19,7 @@ ExecStart=/bin/sleep 5m
 ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance chat 'Server shutting down...'
 ExecStart=/bin/sleep 5s
 
-ExecStart=:DEFINE_PREFIX:/bin/kf2-srv instance update
+ExecStart=:DEFINE_PREFIX:/bin/kf2-srv game update
 
 PrivateTmp=true
 PrivateDevices=true

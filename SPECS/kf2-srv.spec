@@ -102,6 +102,7 @@ fi
 
 %changelog
 * Sat Aug 15 2020 GenZmeY <genzmey@gmail.com> - 0.15.4-1
+- fixed broken update;
 - replaced steamID3/steamID64 conversation algorithm.
 
 * Sat Aug 15 2020 GenZmeY <genzmey@gmail.com> - 0.15.3-1
