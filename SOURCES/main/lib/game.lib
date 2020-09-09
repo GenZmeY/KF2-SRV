@@ -39,7 +39,7 @@ function fix_ini_permissions () # $1: Dir
 
 	find "$1" \( -type l -o -type f \) -name '*.ini' | \
 	xargs --max-procs=$(nproc) -I {}  \
-	sh -c "chmod $ForceIniPermissions {}; chown $SteamUser:$ForceIniGroup {}"
+	sh -c "chmod $IniPermissions {}; chown $SteamUser:$IniGroup {}"
 }
 
 function game_run () # $@: Game args
@@ -255,9 +255,9 @@ function make_default_instance () # $1: Dir
 
 	local InstanceDir="$InstanceConfigDir/default"
 	
-	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir"
-	install -d -g "$SteamUser" -o "$ForceIniGroup" -m 775                   "$InstanceDir/LinuxServer"
-	install    -g "$SteamUser" -o "$ForceIniGroup" -m $ForceIniPermissions  "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
+	install -d -g "$SteamUser" -o "$IniGroup" -m 775                        "$InstanceDir"
+	install -d -g "$SteamUser" -o "$IniGroup" -m 775                        "$InstanceDir/LinuxServer"
+	install    -g "$SteamUser" -o "$IniGroup" -m $IniPermissions            "$InstanceConfigTemplate" "$InstanceDir/instance.conf"
 	ln -s "$DefaultConfigDir/KFAI.ini"                                      "$InstanceDir/KFAI.ini"
 	ln -s "$DefaultConfigDir/KFWeb.ini"                                     "$InstanceDir/KFWeb.ini"
 	ln -s "$DefaultConfigDir/KFWebAdmin.ini"                                "$InstanceDir/KFWebAdmin.ini"

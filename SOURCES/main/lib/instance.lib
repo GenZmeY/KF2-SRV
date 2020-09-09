@@ -90,8 +90,8 @@ function instance_add () # $*: InstanceName[s]
 
 		local InstanceDir="$InstanceConfigDir/$Instance"
 		
-		local DirMode="-d -g $SteamUser -o $ForceIniGroup -m 775"
-		local FileMode="  -g $SteamUser -o $ForceIniGroup -m $ForceIniPermissions"
+		local DirMode="-d -g $SteamUser -o $IniGroup -m 775"
+		local FileMode="  -g $SteamUser -o $IniGroup -m $IniPermissions"
 		
 		install $DirMode "$InstanceDir"
 		install $DirMode "$InstanceDir/LinuxServer"

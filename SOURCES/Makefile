@@ -60,13 +60,11 @@ build:
 	
 	cp -r $(SOURCEDIR)/main       $(RELEASEDIR)
 	cp -r $(SOURCEDIR)/config     $(RELEASEDIR)
-	cp -r $(SOURCEDIR)/force-attr $(RELEASEDIR)
 	
 	find $(RELEASEDIR) -type f -exec sed -i 's|:DEFINE_PREFIX:|$(PREFIX)|g;' {} \;
 
 fake-systemd-build:
 	find $(SOURCEDIR)/main       -type f -name '*.service' -exec cp -f {} $(RELEASEDIR)/{} \;
-	find $(SOURCEDIR)/force-attr -type f -name '*.service' -exec cp -f {} $(RELEASEDIR)/{} \;
 	find $(RELEASEDIR)           -type f -exec sed -i  's|:DEFINE_PREFIX:|$(DESTDIR)$(PREFIX)|g;' {} \;
 	find $(RELEASEDIR)           -type f -exec sed -i -r 's|ExecStart=.+KFGameSteamServer.bin.x86_64|ExecStart=/bin/bash|g;' {} \;
 
@@ -122,9 +120,6 @@ install: filesystem build
 	install -m 644 $(RELEASEDIR)/main/logrotate/$(NAME)                        $(LOGROTATEDIR)
 	install -m 644 $(RELEASEDIR)/main/rsyslog/$(NAME).conf                     $(RSYSLOGDIR)
 	
-	install -m 755 $(RELEASEDIR)/force-attr/$(NAME)-force-attr                 $(SBINDIR)
-	install -m 644 $(RELEASEDIR)/force-attr/systemd/$(NAME)-force-attr.service $(UNITDIR)
-	
 	install -m 640 $(RELEASEDIR)/config/bot.conf                               $(CONFDIR)
 	install -m 644 $(RELEASEDIR)/config/instance.conf.template                 $(CONFDIR)
 	install -m 644 $(RELEASEDIR)/config/$(NAME).conf                           $(CONFDIR)
@@ -148,9 +143,6 @@ uninstall:
 	rm -f  $(LOGROTATEDIR)/$(NAME)
 	rm -f  $(RSYSLOGDIR)/$(NAME).conf
 	
-	rm -f  $(SBINDIR)/$(NAME)-force-attr
-	rm -f  $(UNITDIR)/$(NAME)-force-attr.service
-	
 	rm -rf $(LICENSEDIR)
 	rm -rf $(KF2MAINDIR)
 	rm -rf $(KF2BETADIR)
@@ -165,11 +157,9 @@ test: fake-systemd-build
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-beta-update.timer
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-update.service
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-update.timer
-	$(SYSTEMDCHECK)   $(RELEASEDIR)/force-attr/systemd/$(NAME)-force-attr.service
 	
 	$(BASHCHECK)      $(RELEASEDIR)/main/$(NAME)
 	$(BASHCHECK)      $(RELEASEDIR)/main/$(NAME)-beta
-	$(BASHCHECK)      $(RELEASEDIR)/force-attr/$(NAME)-force-attr
 	
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/list
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/ban/add
