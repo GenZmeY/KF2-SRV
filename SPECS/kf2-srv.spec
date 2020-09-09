@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.15.4
+Version:    0.15.8
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -101,6 +101,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Tue Sep 8 2020 GenZmeY <genzmey@gmail.com> - 0.16.0-1
+- log cmg group.
+
 * Sat Aug 15 2020 GenZmeY <genzmey@gmail.com> - 0.15.4-1
 - fixed broken update;
 - replaced steamID3/steamID64 conversation algorithm.

@@ -196,6 +196,8 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/add
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/delete
 	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/workshop/sync
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/log/cat
+	$(BASHCHECK)      $(RELEASEDIR)/main/cmdgrp/log/tail
 	
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/ban.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/game.lib
@@ -205,6 +207,7 @@ test: fake-systemd-build
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/playerids.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/webadmin.lib
 	$(BASHCHECK)      $(RELEASEDIR)/main/lib/workshop.lib
+	$(BASHCHECK)      $(RELEASEDIR)/main/lib/log.lib
 	
 	$(BASHCHECK)      $(RELEASEDIR)/main/bash_completion/$(NAME)
 
