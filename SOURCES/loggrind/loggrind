@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
+# Copyright (C) 2019, 2020 GenZmeY
+# mailto: genzmey@gmail.com
+# 
+# This file is part of kf2-srv.
+#
+# kf2-srv is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+readonly ScriptFullname=$(readlink -e "$0")
+readonly ScriptName=$(basename $0)
+
+function show_help ()
+{
+	echo "$ScriptName <service_name> <status_dir>"
+}
+
+function grind () # $1: Line
+{
+	
+}
+
+if [[ $# -ne 2 ]]; then show_help; exit 0; fi
+
+StatusDir=$(readlink -e "$2")
+
+if echo "$1" | grep -P '\.service$'; then
+	Service="$1"
+	Name="$1.service"
+else
+	Service="$1.service"
+	Name="$1"
+fi
+
+#if ! [[ -e "$StatusDir/$Name" ]]; then
+#	READ?
+#fi
+
+while read Line
+do
+	grind "$Line"
+done < journalctl -f --no-pager -o json --output-fields=MESSAGE -u "$Service" | jq -r '.MESSAGE'
