@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.15.8
+Version:    0.15.9
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -74,7 +74,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root)         %config(noreplace) %{_prefix}/lib/firewalld/services/%{name}.xml
 %attr(0755,root,root)                            %{_bindir}/%{name}
 %attr(0755,root,root)                            %{_bindir}/%{name}-beta
-%attr(0755,root,root)                            %{_sbindir}/%{name}-force-attr
 %attr(0644,root,root)                            %{_unitdir}/*
 %attr(0644,root,root)         %doc               %{_datadir}/licenses/%{name}/*
 %attr(0644,root,root)                            %{_sysconfdir}/rsyslog.d/%{name}.conf
@@ -101,8 +100,10 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
-* Tue Sep 8 2020 GenZmeY <genzmey@gmail.com> - 0.16.0-1
-- log cmg group.
+* Mon Sep 21 2020 GenZmeY <genzmey@gmail.com> - 0.16.0-1
+- remove force-attr daemon;
+- log cmg group;
+- command descriptions.
 
 * Sat Aug 15 2020 GenZmeY <genzmey@gmail.com> - 0.15.4-1
 - fixed broken update;

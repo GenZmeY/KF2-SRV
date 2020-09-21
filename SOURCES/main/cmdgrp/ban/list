@@ -33,10 +33,10 @@ function cmd_info ()
 	echo "Show the list of blocked users"
 }
 
-function cmd_help ()
-{
-	echo "TODO: description"
-}
+#function cmd_help ()
+#{
+#	echo ""
+#}
 
 function cmd_main ()
 {

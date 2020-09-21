@@ -46,7 +46,6 @@ builddep:
 prep: clean-tmp
 	cd $(SOURCESDIR) && tar czf $(SOURCETARBALL) \
 		config     \
-		force-attr \
 		main       \
 		COPYING    \
 		Makefile

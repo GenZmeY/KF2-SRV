@@ -30,12 +30,12 @@ function cmd_usage ()
 
 function cmd_info ()
 {
-	echo "Disable specified server instance(s)"
+	echo "Disable autostart for specified server instance(s)"
 }
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "If instance is not specified, disable autostart for all instances."
 }
 
 function cmd_main ()

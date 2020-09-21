@@ -30,12 +30,13 @@ function cmd_usage ()
 
 function cmd_info ()
 {
-	echo "Sync steamorkshop resources between all server instances"
+	echo "Sync steam workshop resources between all server instances"
 }
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "In addition to synchronization, adds loaded maps and mutators to KFGame.ini."
+	echo "This command works for stopped server instances only."
 }
 
 function cmd_main ()

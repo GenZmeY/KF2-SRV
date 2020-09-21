@@ -197,10 +197,22 @@ elif [[ -d "$GroupPathname" ]]; then
 		shift
 		source "$CommandPathName"
 		if is_help "$1"; then
-			if function_exists "cmd_help"; then
-				cmd_help
-			else
+			if ! function_exists "cmd_usage" \
+			&& ! function_exists "cmd_info"  \
+			&& ! function_exists "cmd_help"; then
 				echo "No help page for this command."
+			else
+				if function_exists "cmd_usage"; then
+					echo "usage: $(cmd_usage)"
+					echo
+				fi
+				if function_exists "cmd_info"; then
+					cmd_info
+					echo
+				fi
+				if function_exists "cmd_help"; then
+					cmd_help
+				fi
 			fi
 		elif is_usage "$1"; then
 			if function_exists "cmd_usage"; then

@@ -33,10 +33,10 @@ function cmd_info ()
 	echo "Sync blocklist for all servers"
 }
 
-function cmd_help ()
-{
-	echo "TODO: description"
-}
+#function cmd_help ()
+#{
+#	echo ""
+#}
 
 function cmd_main ()
 {

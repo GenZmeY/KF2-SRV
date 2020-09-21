@@ -35,7 +35,9 @@ function cmd_info ()
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "If instance is not specified, set a admin password for all instances."
+	echo "To remove a password, use an empty password as an argument,"
+	echo "example: ${ScriptFullname}${KF2POSTFIX} password admin '' test_instance"
 }
 
 function cmd_main ()
