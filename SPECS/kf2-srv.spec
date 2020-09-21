@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.15.9
+Version:    0.16.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
