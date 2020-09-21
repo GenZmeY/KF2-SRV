@@ -35,7 +35,8 @@ function cmd_info ()
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "Stops all running server instances, installs updates (if any)"
+	echo "When finished, starts all enabled instances."
 }
 
 function cmd_main ()

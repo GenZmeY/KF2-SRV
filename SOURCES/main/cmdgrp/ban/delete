@@ -35,7 +35,8 @@ function cmd_info ()
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "Id can be SteamID3, SteamID64 or a link to a user profile."
+	echo "EGS players are not supported."
 }
 
 function cmd_main () # $*: ban list

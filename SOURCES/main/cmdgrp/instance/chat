@@ -30,12 +30,12 @@ function cmd_usage ()
 
 function cmd_info ()
 {
-	echo "Send message to specified server instances"
+	echo "Send message to specified server instance(s)"
 }
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "If instance is not specified, sends a message to all running servers."
 }
 
 function cmd_main ()

@@ -33,10 +33,10 @@ function cmd_info ()
 	echo "Show the list of steam workshop resources"
 }
 
-function cmd_help ()
-{
-	echo "TODO: description"
-}
+#function cmd_help ()
+#{
+#	echo ""
+#}
 
 function cmd_main ()
 {

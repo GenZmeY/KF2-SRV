@@ -35,7 +35,7 @@ function cmd_info ()
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "If instance is not specified, stops all instances."
 }
 
 function cmd_main ()

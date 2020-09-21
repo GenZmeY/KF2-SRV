@@ -30,12 +30,12 @@ function cmd_usage ()
 
 function cmd_info ()
 {
-	echo "Delete the specified server instances"
+	echo "Delete the specified server instance(s)"
 }
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "If instance is not specified, deletes all server instances."
 }
 
 function cmd_main ()

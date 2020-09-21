@@ -35,7 +35,10 @@ function cmd_info ()
 
 function cmd_help ()
 {
-	echo "TODO: description"
+	echo "By default, all files created by the kf2 server"
+	echo "have 600 permissions, which can be inconvenient."
+	echo "This command fixes the permissions and groups of"
+	echo "all ini files to the values specified in kf2-srv.conf"
 }
 
 function cmd_main ()
