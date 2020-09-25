@@ -1,0 +1,67 @@
+kf2-srv
+Command line tool for managing a set of Killing Floor 2 servers.
+
+Usage: kf2-srv <group> <command> [<args>]
+
+  kf2-srv ban add <id>...
+    Add the specified user(s) to the blocklist
+  kf2-srv ban delete <id>...
+    remove the specified user(s) from the blocklist
+  kf2-srv ban list 
+    Show the list of blocked users
+  kf2-srv ban sync 
+    Sync blocklist for all servers
+
+  kf2-srv game fix-permissions [<instance>...]
+    Correct ini files permissions for the specified instance
+  kf2-srv game run [<args>...]
+    Start the server with the specified parameters
+  kf2-srv game update 
+    Install or update the server
+  kf2-srv game validate 
+    Check the integrity of files, update them if necessary
+
+  kf2-srv instance add <name>...
+    Create a new server instance(s) with the specified name(s)
+  kf2-srv instance chat <message> [<instance>...]
+    Send message to specified server instance(s)
+  kf2-srv instance delete [<instance>...]
+    Delete the specified server instance(s)
+  kf2-srv instance disable [<instance>...]
+    Disable autostart for specified server instance(s)
+  kf2-srv instance enable [<instance>...]
+    Enable autostart for specified server instance(s)
+  kf2-srv instance list [<instance>...]
+    Show status of the specified server instance(s)
+  kf2-srv instance restart [<instance>...]
+    Restart the specified server instance(s)
+  kf2-srv instance start [<instance>...]
+    Start the specified server instance(s)
+  kf2-srv instance stop [<instance>...]
+    Stop the specified server instance(s)
+
+  kf2-srv log cat [<instance>...]
+    Print in stdout full log of specified server instance(s)
+  kf2-srv log tail [<instance>...]
+    Print in stdout tail log of specified server instance(s) in real time
+
+  kf2-srv maprotate load [<instance>...]
+    Load map rotation for specified server instance(s)
+  kf2-srv maprotate save [<instance>...]
+    Save map rotation for specified server instance(s)
+
+  kf2-srv password admin <password> [<instance>...]
+    Set a admin password for the specified server instance(s)
+  kf2-srv password game <password> [<instance>...]
+    Set a game password for the specified server instance(s)
+
+  kf2-srv workshop add <workshop_id>...
+    Add specified resource(s) from steam workshop
+  kf2-srv workshop delete [<workshop_id>...]
+    Delete specified steam workshop resource(s)
+  kf2-srv workshop list 
+    Show the list of steam workshop resources
+  kf2-srv workshop sync 
+    Sync steam workshop resources between all server instances
+
+Use --help as an argument for information on a specific group or command
