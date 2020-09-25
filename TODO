@@ -1,9 +1,7 @@
 - selinux
-- sudo for steamuser
 - kick by level
 - man pages
-- write help pages for each command
-- check ban EGS players (mb bugs)
+- ban EGS players
 - ban history
 - temporary ban
 - generate unique password for server bot on install
