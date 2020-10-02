@@ -30,7 +30,6 @@ Requires:   gawk
 Requires:   multini >= 0.2.3
 Requires:   rsyslog >= 8.25.0
 Requires:   logrotate
-Requires:   inotify-tools
 Requires:   bash-completion >= 2.7
 
 Provides:   %{name}
