@@ -43,6 +43,7 @@ DATADIR         = $(DESTDIR)$(PREFIX)/share
 SCRIPTDIR       = $(DATADIR)/$(NAME)
 SCRIPTGRPDIR    = $(SCRIPTDIR)/cmdgrp
 SCRIPTLIBDIR    = $(SCRIPTDIR)/lib
+SCRIPTPATCHDIR  = $(SCRIPTDIR)/patch
 LICENSEDIR      = $(DATADIR)/licenses/$(NAME)
 KF2MAINDIR      = $(GAMEDIR)/$(NAME)
 KF2BETADIR      = $(GAMEDIR)/$(NAME)-beta
@@ -69,25 +70,26 @@ fake-systemd-build:
 	find $(RELEASEDIR)           -type f -exec sed -i -r 's|ExecStart=.+KFGameSteamServer.bin.x86_64|ExecStart=/bin/bash|g;' {} \;
 
 filesystem:
-	test -d '$(CONFDIR)'      || install -m 775 -d '$(CONFDIR)'
-	test -d '$(INSTMAINDIR)'  || install -m 775 -d '$(INSTMAINDIR)'
-	test -d '$(INSTBETADIR)'  || install -m 775 -d '$(INSTBETADIR)'
-	test -d '$(MAPCYCLEDIR)'  || install -m 775 -d '$(MAPCYCLEDIR)'
-	test -d '$(CACHEDIR)'     || install -m 775 -d '$(CACHEDIR)'
-	test -d '$(BINDIR)'       || install -m 755 -d '$(BINDIR)'
-	test -d '$(SBINDIR)'      || install -m 755 -d '$(SBINDIR)'
-	test -d '$(KF2MAINDIR)'   || install -m 775 -d '$(KF2MAINDIR)'
-	test -d '$(KF2BETADIR)'   || install -m 775 -d '$(KF2BETADIR)'
-	test -d '$(LICENSEDIR)'   || install -m 755 -d '$(LICENSEDIR)'
-	test -d '$(MAINLOGDIR)'   || install -m 770 -d '$(MAINLOGDIR)'
-	test -d '$(BETALOGDIR)'   || install -m 770 -d '$(BETALOGDIR)'
-	test -d '$(UNITDIR)'      || install -m 755 -d '$(UNITDIR)'
-	test -d '$(FIREWALLDDIR)' || install -m 755 -d '$(FIREWALLDDIR)'
-	test -d '$(LOGROTATEDIR)' || install -m 755 -d '$(LOGROTATEDIR)'
-	test -d '$(RSYSLOGDIR)'   || install -m 755 -d '$(RSYSLOGDIR)'
-	test -d '$(SCRIPTGRPDIR)' || install -m 755 -d '$(SCRIPTGRPDIR)'
-	test -d '$(SCRIPTLIBDIR)' || install -m 755 -d '$(SCRIPTLIBDIR)'
-	test -d '$(BASHCOMPDIR)'  || install -m 755 -d '$(BASHCOMPDIR)'
+	test -d '$(CONFDIR)'        || install -m 775 -d '$(CONFDIR)'
+	test -d '$(INSTMAINDIR)'    || install -m 775 -d '$(INSTMAINDIR)'
+	test -d '$(INSTBETADIR)'    || install -m 775 -d '$(INSTBETADIR)'
+	test -d '$(MAPCYCLEDIR)'    || install -m 775 -d '$(MAPCYCLEDIR)'
+	test -d '$(CACHEDIR)'       || install -m 775 -d '$(CACHEDIR)'
+	test -d '$(BINDIR)'         || install -m 755 -d '$(BINDIR)'
+	test -d '$(SBINDIR)'        || install -m 755 -d '$(SBINDIR)'
+	test -d '$(KF2MAINDIR)'     || install -m 775 -d '$(KF2MAINDIR)'
+	test -d '$(KF2BETADIR)'     || install -m 775 -d '$(KF2BETADIR)'
+	test -d '$(LICENSEDIR)'     || install -m 755 -d '$(LICENSEDIR)'
+	test -d '$(MAINLOGDIR)'     || install -m 770 -d '$(MAINLOGDIR)'
+	test -d '$(BETALOGDIR)'     || install -m 770 -d '$(BETALOGDIR)'
+	test -d '$(UNITDIR)'        || install -m 755 -d '$(UNITDIR)'
+	test -d '$(FIREWALLDDIR)'   || install -m 755 -d '$(FIREWALLDDIR)'
+	test -d '$(LOGROTATEDIR)'   || install -m 755 -d '$(LOGROTATEDIR)'
+	test -d '$(RSYSLOGDIR)'     || install -m 755 -d '$(RSYSLOGDIR)'
+	test -d '$(SCRIPTGRPDIR)'   || install -m 755 -d '$(SCRIPTGRPDIR)'
+	test -d '$(SCRIPTLIBDIR)'   || install -m 755 -d '$(SCRIPTLIBDIR)'
+	test -d '$(SCRIPTPATCHDIR)' || install -m 755 -d '$(SCRIPTPATCHDIR)'
+	test -d '$(BASHCOMPDIR)'    || install -m 755 -d '$(BASHCOMPDIR)'
 
 install: filesystem build
 	install -m 755 $(RELEASEDIR)/main/$(NAME)                                  $(BINDIR)

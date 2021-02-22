@@ -60,6 +60,7 @@ function game_update ()
 	elif updates_aviable; then
 		instance_stop
 		steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg +exit
+		apply_patch
 		instance_start
 	else
 		echo "Server is up to date"
@@ -96,6 +97,7 @@ function game_validate ()
 	fi
 	instance_stop
 	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
+	apply_patch
 	fix_steamclient_so
 	instance_start
 }
@@ -200,6 +202,7 @@ function first_install ()
 	fix_steamclient_so
 	ln -s "$InstanceConfigDir" "$DefaultConfigDir/instances"
 	make_default_instance
+	apply_patch
 	echo "KF2 succesfully installed"
 }
 
@@ -273,6 +276,13 @@ function make_default_instance () # $1: Dir
 	
 	fix_ini_permissions "$InstanceDir"
 	fix_ini_eol "$InstanceDir"
+}
+
+function apply_patch ()
+{
+	if [[ -x "$PatchDir/kf2-ranked-patch" ]]; then
+		"$PatchDir/kf2-ranked-patch" "$AppBin"
+	fi
 }
 
 function fix_ini_eol () # $1: Dir

@@ -1,6 +1,5 @@
 [Unit]
 Description=Killing Floor 2 Server Daemon - %i
-After=kf2-srv-force-attr.service
 After=network-online.target
 Wants=network-online.target
 
@@ -13,7 +12,7 @@ StandardError=syslog
 SyslogIdentifier=kf2-srv/%i
 EnvironmentFile=/etc/kf2-srv/instances/%i/instance.conf
 ExecStart=:DEFINE_PREFIX:/games/kf2-srv/Binaries/Win64/KFGameSteamServer.bin.x86_64 ${Map}?Difficulty=${Difficulty}?GameLength=${Length}?Game=${Game}?Mutator=${Mutators}?${Args} configsubdir=instances/%i -webadminport=${PortWeb} -queryport=${PortQuery} -port=${PortGame}
-Restart=always
+Restart=on-failure
 
 NoNewPrivileges=yes
 PrivateTmp=true

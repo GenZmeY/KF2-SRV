@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.16.0
+Version:    0.17.0
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -68,6 +68,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}/cmdgrp
 %attr(0755,root,root)         %dir               %{_datadir}/%{name}/cmdgrp/*
 %attr(0775,root,root)         %dir               %{_datadir}/%{name}/lib
+%attr(0775,root,root)         %dir               %{_datadir}/%{name}/patch
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/instance.conf.template
 %attr(0664,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %attr(0640,root,%{steamuser}) %config(noreplace) %{_sysconfdir}/%{name}/bot.conf
@@ -100,6 +101,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Sun Feb 21 2021 GenZmeY <genzmey@gmail.com> - 0.17.0-1
+- Binary patching support.
+
 * Mon Sep 21 2020 GenZmeY <genzmey@gmail.com> - 0.16.0-1
 - remove force-attr daemon;
 - log cmg group;

@@ -25,6 +25,7 @@ readonly ScriptVersion=$(rpm -q --queryformat '%{VERSION}' "$ScriptName")
 
 readonly GrpDir=":DEFINE_PREFIX:/share/kf2-srv/cmdgrp"
 readonly LibDir=":DEFINE_PREFIX:/share/kf2-srv/lib"
+readonly PatchDir=":DEFINE_PREFIX:/share/kf2-srv/patch"
 
 readonly InstallDir=":DEFINE_PREFIX:/games/kf2-srv${KF2POSTFIX}"
 readonly AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
