@@ -67,7 +67,7 @@ build:
 fake-systemd-build:
 	find $(SOURCEDIR)/main       -type f -name '*.service' -exec cp -f {} $(RELEASEDIR)/{} \;
 	find $(RELEASEDIR)           -type f -exec sed -i  's|:DEFINE_PREFIX:|$(DESTDIR)$(PREFIX)|g;' {} \;
-	find $(RELEASEDIR)           -type f -exec sed -i -r 's|ExecStart=.+KFGameSteamServer.bin.x86_64|ExecStart=/bin/bash|g;' {} \;
+	find $(RELEASEDIR)           -type f -exec sed -i -r 's|ExecStart=.+KFGameSteamServer.bin.x86_64.*|ExecStart=/bin/bash|g;' {} \;
 
 filesystem:
 	test -d '$(CONFDIR)'        || install -m 775 -d '$(CONFDIR)'
