@@ -112,7 +112,9 @@ install: filesystem build
 	install -m 644 $(RELEASEDIR)/main/lib/*                                    $(SCRIPTLIBDIR)
 	
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)@.service                 $(UNITDIR)
+	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-orig@.service            $(UNITDIR)
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-beta@.service            $(UNITDIR)
+	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-beta-orig@.service       $(UNITDIR)
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-beta-update.service      $(UNITDIR)
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-beta-update.timer        $(UNITDIR)
 	install -m 644 $(RELEASEDIR)/main/systemd/$(NAME)-update.service           $(UNITDIR)
@@ -135,7 +137,9 @@ uninstall:
 	rm -f  $(BINDIR)/$(NAME)-beta
 	
 	rm -f  $(UNITDIR)/$(NAME)@.service
+	rm -f  $(UNITDIR)/$(NAME)-orig@.service
 	rm -f  $(UNITDIR)/$(NAME)-beta@.service
+	rm -f  $(UNITDIR)/$(NAME)-beta-orig@.service
 	rm -f  $(UNITDIR)/$(NAME)-beta-update.service
 	rm -f  $(UNITDIR)/$(NAME)-beta-update.timer
 	rm -f  $(UNITDIR)/$(NAME)-update.service
@@ -154,7 +158,9 @@ test: fake-systemd-build
 	$(XMLCHECK)       $(RELEASEDIR)/main/firewalld/$(NAME).xml
 	
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)@.service
+	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-orig@.service
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-beta@.service
+	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-beta-orig@.service
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-beta-update.service
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-beta-update.timer
 	$(SYSTEMDCHECK)   $(RELEASEDIR)/main/systemd/$(NAME)-update.service

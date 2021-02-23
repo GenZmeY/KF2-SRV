@@ -29,6 +29,7 @@ readonly PatchDir=":DEFINE_PREFIX:/share/kf2-srv/patch"
 
 readonly InstallDir=":DEFINE_PREFIX:/games/kf2-srv${KF2POSTFIX}"
 readonly AppBin="$InstallDir/Binaries/Win64/KFGameSteamServer.bin.x86_64"
+readonly AppBinOrig="${AppBin}.orig"
 
 readonly DefaultConfigDir="$InstallDir/KFGame/Config"
 readonly DefaultDownloadDir="$InstallDir/Binaries/Win64/steamapps/workshop"

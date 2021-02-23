@@ -45,6 +45,21 @@ function service_name () # $*: Instance[s]
 	local Services=""
 	for Instance in $*
 	do
+		if multini -g "$InstanceConfigDir/$Instance" '' "UseOrigApp" 2> /dev/null | grep -Piqo '^True$' && test -x "$AppBinOrig"
+			Services+=" kf2-srv${KF2POSTFIX}-orig@$Instance.service"
+		else
+			Services+=" kf2-srv${KF2POSTFIX}@$Instance.service"
+		fi
+	done
+	echo "$Services"
+}
+
+function service_names () # $*: Instance[s]
+{
+	local Services=""
+	for Instance in $*
+	do
+		Services+=" kf2-srv${KF2POSTFIX}-orig@$Instance.service"
 		Services+=" kf2-srv${KF2POSTFIX}@$Instance.service"
 	done
 	echo "$Services"
@@ -212,7 +227,7 @@ function instance_disable () # $*: [InstanceName[s]]
 	done
 	
 	if [[ -n "$ToDisableInstanceList" ]]; then
-		systemctl disable $(service_name "$ToDisableInstanceList")
+		systemctl disable $(service_names "$ToDisableInstanceList")
 	else
 		echo "Nothing to do"
 	fi
@@ -409,7 +424,7 @@ function instance_stop () # $*: [InstanceName[s]]
 	done
 	
 	if [[ -n "$ToStopInstanceList" ]]; then
-		systemctl stop $(service_name "$ToStopInstanceList")
+		systemctl stop $(service_names "$ToStopInstanceList")
 	else
 		echo "Nothing to do"
 	fi
