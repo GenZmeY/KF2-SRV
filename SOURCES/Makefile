@@ -1,5 +1,5 @@
 # kf2-srv is a command line tool for managing a set of Killing Floor 2 servers.
-# Copyright (C) 2019, 2020 GenZmeY
+# Copyright (C) 2019-2021 GenZmeY
 # mailto: genzmey@gmail.com
 # 
 # This file is part of kf2-srv.
