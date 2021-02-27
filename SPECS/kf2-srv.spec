@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.17.0
+Version:    0.17.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -101,8 +101,11 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Sat Feb 27 2021 GenZmeY <genzmey@gmail.com> - 0.17.1-1
+- fix the start of the original app.
+
 * Sun Feb 21 2021 GenZmeY <genzmey@gmail.com> - 0.17.0-1
-- Binary patching support.
+- binary patching support.
 
 * Mon Sep 21 2020 GenZmeY <genzmey@gmail.com> - 0.16.0-1
 - remove force-attr daemon;
