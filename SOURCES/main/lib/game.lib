@@ -282,6 +282,8 @@ function apply_patch ()
 {
 	if [[ -x "$PatchDir/kf2-ranked-patch" ]]; then
 		"$PatchDir/kf2-ranked-patch" "$AppBin" "$AppBinOrig"
+		chmod +x "$AppBin" "$AppBinOrig"
+		chown "$SteamUser:$SteamUser" "$AppBin" "$AppBinOrig"
 	fi
 }
 

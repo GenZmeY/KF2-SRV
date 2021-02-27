@@ -45,7 +45,7 @@ function service_name () # $*: Instance[s]
 	local Services=""
 	for Instance in $*
 	do
-		if multini -g "$InstanceConfigDir/$Instance" '' "UseOrigApp" 2> /dev/null | grep -Piqo '^True$' && test -x "$AppBinOrig"; then
+		if multini -g "$InstanceConfigDir/$Instance/instance.conf" '' "UseOrigApp" 2> /dev/null | grep -Piqo '^True$' && test -x "$AppBinOrig"; then
 			Services+=" kf2-srv${KF2POSTFIX}-orig@$Instance.service"
 		else
 			Services+=" kf2-srv${KF2POSTFIX}@$Instance.service"
