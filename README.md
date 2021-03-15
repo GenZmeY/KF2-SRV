@@ -1,4 +1,4 @@
-# kf2-srv
+# KF2-SRV
 *Killing Floor 2 server tool for RHEL8/CentOS8*
 
 [![build release](https://github.com/GenZmeY/kf2-srv/workflows/build%20release/badge.svg)](https://github.com/GenZmeY/kf2-srv/actions?query=workflow%3A%22build+release%22)
@@ -7,18 +7,8 @@
 [![GitHub release](https://img.shields.io/github/v/release/genzmey/kf2-srv)](https://github.com/genzmey/kf2-srv/releases/latest)
 [![GitHub Release Date](https://img.shields.io/github/release-date/genzmey/kf2-srv)](https://github.com/genzmey/kf2-srv/releases/latest)
 
-# Features
-...
-
-# Build
-...
-
-# Install
-...
-
-# Usage
-...
+# Readme under construction
+¯\_(ツ)_/¯
 
 # License
 ![GitHub](https://img.shields.io/github/license/genzmey/kf2-srv)
-...
