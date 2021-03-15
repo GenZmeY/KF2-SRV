@@ -10,5 +10,17 @@
 # Readme under construction
 `¯\_(ツ)_/¯`
 
+But you can find actual rpm packages here: https://github.com/GenZmeY/KF2-SRV/releases  
+And basic usage information here: https://github.com/GenZmeY/KF2-SRV/blob/master/SOURCES/README  
+**Filesystem:**  
+configs: `/etc/kf2-srv/`  
+game server: `/usr/games/kf2-srv`  
+game server (beta): `/usr/games/kf2-srv-beta`  
+cache: `/var/cache/kf2-srv`  
+logs: `/var/log/kf2-srv`  
+logs (beta): `/var/logs/kf2-srv`  
+
+You also need multini and steamcmd dependencies which can be found in my repo: https://repo.ayano.su/el8/x86_64/  
+
 # License
 ![GitHub](https://img.shields.io/github/license/genzmey/KF2-SRV)
