@@ -6,6 +6,7 @@
 [![tests (dev)](https://github.com/GenZmeY/KF2-SRV/workflows/tests%20(dev)/badge.svg?branch=dev)](https://github.com/GenZmeY/KF2-SRV/actions?query=workflow%3A%22tests+%28dev%29%22)
 [![GitHub release](https://img.shields.io/github/v/release/genzmey/KF2-SRV)](https://github.com/genzmey/KF2-SRV/releases/latest)
 [![GitHub Release Date](https://img.shields.io/github/release-date/genzmey/KF2-SRV)](https://github.com/genzmey/KF2-SRV/releases/latest)
+![GitHub](https://img.shields.io/github/license/genzmey/KF2-SRV)
 
 # Readme under construction
 `¯\_(ツ)_/¯`
@@ -23,4 +24,4 @@ logs (beta): `/var/logs/kf2-srv`
 You also need multini and steamcmd dependencies which can be found in my repo: https://repo.ayano.su/el8/x86_64/  
 
 # License
-![GitHub](https://img.shields.io/github/license/genzmey/KF2-SRV)
+[GNU GPLv3](LICENSE)
