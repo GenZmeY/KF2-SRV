@@ -8,7 +8,7 @@
 [![GitHub Release Date](https://img.shields.io/github/release-date/genzmey/kf2-srv)](https://github.com/genzmey/kf2-srv/releases/latest)
 
 # Readme under construction
-¯\_(ツ)_/¯
+`¯\_(ツ)_/¯`
 
 # License
 ![GitHub](https://img.shields.io/github/license/genzmey/kf2-srv)
