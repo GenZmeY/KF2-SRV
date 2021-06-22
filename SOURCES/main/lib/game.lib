@@ -96,9 +96,10 @@ function game_validate ()
 		local BetaArg="-beta preview"
 	fi
 	instance_stop
+	remove_symlink_steamclient_so
 	steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit
 	apply_patch
-	fix_steamclient_so
+	create_symlink_steamclient_so
 	instance_start
 }
 
@@ -106,6 +107,8 @@ function first_install ()
 {
 	include /etc/steamcmd/steamcmd.conf
 	include /etc/kf2-srv/bot.conf
+
+	remove_symlink_steamclient_so
 
 	if ! steamcmd +login $SteamLogin +force_install_dir $InstallDir +app_update $AppServerNum $BetaArg validate +exit; then
 		echo "Errors during installation - exit"
@@ -199,7 +202,7 @@ function first_install ()
 	
 	killall -KILL KFGameSteamServer.bin.x86_64; sleep 1
 	create_cache
-	fix_steamclient_so
+	create_symlink_steamclient_so
 	ln -s "$InstanceConfigDir" "$DefaultConfigDir/instances"
 	make_default_instance
 	apply_patch
@@ -241,7 +244,7 @@ function create_cache ()
 	fi
 }
 
-function fix_steamclient_so ()
+function remove_symlink_steamclient_so ()
 {
 	include /etc/kf2-srv/kf2-srv.conf
 	
@@ -249,6 +252,18 @@ function fix_steamclient_so ()
 		rm -f "$InstallDir/linux64/steamclient.so"
 		rm -f "$InstallDir/steamclient.so"
 		rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	else
+		test -L "$InstallDir/linux64/steamclient.so"              && rm -f "$InstallDir/linux64/steamclient.so"
+		test -L "$InstallDir/steamclient.so"                      && rm -f "$InstallDir/steamclient.so"
+		test -L "$InstallDir/Binaries/Win64/lib64/steamclient.so" && rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	fi
+}
+
+function create_symlink_steamclient_so ()
+{
+	include /etc/kf2-srv/kf2-srv.conf
+	
+	if echo "$FixSteamclientLib" | grep -qiF 'true'; then
 		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
 		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
 		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
