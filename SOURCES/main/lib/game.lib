@@ -243,12 +243,16 @@ function create_cache ()
 
 function fix_steamclient_so ()
 {
-	rm -f "$InstallDir/linux64/steamclient.so"
-	rm -f "$InstallDir/steamclient.so"
-	rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
-	ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	include /etc/kf2-srv/kf2-srv.conf
+	
+	if echo "$FixSteamclientLib" | grep -qiF 'true'; then
+		rm -f "$InstallDir/linux64/steamclient.so"
+		rm -f "$InstallDir/steamclient.so"
+		rm -f "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/linux64/steamclient.so"
+		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/steamclient.so"
+		ln -s "/usr/games/steamcmd/linux64/steamclient.so" "$InstallDir/Binaries/Win64/lib64/steamclient.so"
+	fi
 }
 
 function make_default_instance () # $1: Dir

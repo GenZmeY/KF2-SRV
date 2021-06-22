@@ -1,7 +1,7 @@
 %global steamuser steam
 
 Name:       kf2-srv
-Version:    0.17.1
+Version:    0.18.1
 Release:    1%{dist}
 Summary:    Killing Floor 2 server
 Group:      Amusements/Games
@@ -101,6 +101,9 @@ if [[ $1 == 1 ]]; then # Install
 fi
 
 %changelog
+* Tue Jun 22 2021 GenZmeY <genzmey@gmail.com> - 0.18.1-1
+- add FixSteamclientLib setting to config.
+
 * Sat Feb 27 2021 GenZmeY <genzmey@gmail.com> - 0.17.1-1
 - fix the start of the original app.
 
