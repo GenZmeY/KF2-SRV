@@ -1,8 +1,4 @@
-- selinux
-- kick by level
-- man pages
-- ban EGS players
-- ban history
-- temporary ban
-- generate unique password for server bot on install
-
+# TODO:
+- [ ] split source and rpmbuild
+- [ ] add shellcheck
+- [ ] webadmin patch
