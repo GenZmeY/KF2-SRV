@@ -11,8 +11,9 @@
 There is not and most likely never will be a detailed manual. If you don't have sufficient knowledge of Linux in general and CentOS in particular, as well as the ability to learn unknown tools, you probably shouldn't use this.
 
 # Usage
-You can find actual rpm packages (with dependencies) here(\*): https://cloud.genzmey.su/index.php/s/3GiwtDpkNyCarXc  
-And basic usage information here: https://github.com/GenZmeY/KF2-SRV/blob/master/SOURCES/README  
+You can find actual rpm packages here(\*): https://github.com/GenZmeY/KF2-SRV/releases  
+And dependencies here: https://cloud.genzmey.su/index.php/s/3GiwtDpkNyCarXc  
+Basic usage information: https://github.com/GenZmeY/KF2-SRV/blob/master/SOURCES/README  
 
 \* inotify-tools requirement can be ignored  
 
